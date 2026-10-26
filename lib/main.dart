@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-import 'screens/main_navigation_screen.dart';
+import 'screens/registro_screen.dart';  
 import 'theme/app_theme.dart';
 
 void main() {
@@ -16,7 +15,7 @@ class LapticonApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Lapticon',
       theme: AppTheme.lightTheme,
-      home: const MainNavigationScreen(),
+      home: const RegistroScreen(),
     );
   }
 }

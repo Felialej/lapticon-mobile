@@ -1,52 +1,46 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lapticon_mobile/main.dart';
 
 void main() {
   testWidgets(
-    'La navegación principal de Lapticon funciona',
+    'La pantalla de registro valida campos obligatorios',
     (WidgetTester tester) async {
       await tester.pumpWidget(
         const LapticonApp(),
       );
 
       expect(
-        find.text('Lapticon'),
-        findsOneWidget,
-      );
-
-      expect(
-        find.text('Viaja y conecta'),
-        findsOneWidget,
-      );
-
-      expect(
-        find.text('Registrar viaje'),
+        find.text('Crear cuenta'),
         findsWidgets,
       );
 
       expect(
-        find.text('Inicio'),
+        find.text('Correo electrónico'),
         findsOneWidget,
       );
 
       expect(
-        find.text('Viajes'),
-        findsOneWidget,
-      );
-
-      expect(
-        find.text('Perfil'),
+        find.text('Contraseña'),
         findsOneWidget,
       );
 
       await tester.tap(
-        find.text('Perfil'),
+        find.widgetWithText(
+          FilledButton,
+          'Crear cuenta',
+        ),
       );
 
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       expect(
-        find.text('Mi perfil'),
+        find.text('El correo es obligatorio'),
+        findsOneWidget,
+      );
+
+      expect(
+        find.text('La contraseña es obligatoria'),
         findsOneWidget,
       );
     },
