@@ -2,24 +2,32 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-class CiudadesService {
-  static const String baseUrl =
-      'https://lapticon-backend.onrender.com';
+import '../config/api_config.dart';
 
-  Future<dynamic> obtenerCiudades() async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/api/ciudades/ciudades'),
+/// Acceso al catálogo público de ciudades del backend de Lapticon.
+///
+/// Los endpoints de este catálogo no exigen token de autenticación.
+class CiudadesService {
+  /// Devuelve los nombres de las ciudades admitidas para origen y destino.
+  ///
+  /// `GET /api/ciudades/ciudades` responde una lista plana de cadenas, por
+  /// ejemplo `["Abbotsford", "Aberdeen", ...]`.
+  Future<List<String>> obtenerCiudades() async {
+    final respuesta = await http.get(
+      Uri.parse('${ApiConfig.backendUrl}/api/ciudades/ciudades'),
       headers: {
         'Accept': 'application/json',
       },
     );
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+    if (respuesta.statusCode != 200) {
+      throw Exception(
+        'Error al obtener las ciudades: ${respuesta.statusCode}',
+      );
     }
 
-    throw Exception(
-      'Error al obtener ciudades: ${response.statusCode}',
-    );
+    final lista = jsonDecode(respuesta.body) as List<dynamic>;
+
+    return lista.map((ciudad) => ciudad.toString()).toList();
   }
-}   
+}
