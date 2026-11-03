@@ -1,7 +1,10 @@
 import 'package:flutter/foundation.dart';
 
+import '../models/perfil_usuario.dart';
 import '../models/usuario.dart';
 import '../services/auth_service.dart';
+import '../services/usuarios_service.dart';
+import 'perfil_controller.dart';
 
 /// Controlador de la autenticación y de la sesión activa.
 ///
@@ -10,11 +13,15 @@ import '../services/auth_service.dart';
 /// formularios. No importa `material.dart` porque no construye interfaz: solo
 /// avisa de sus cambios con `notifyListeners` para que las vistas se redibujen.
 class AuthController extends ChangeNotifier {
-  /// El servicio se recibe por parámetro para poder sustituirlo en pruebas.
-  AuthController({AuthService? authService})
-      : _authService = authService ?? AuthService();
+  /// Los servicios se reciben por parámetro para poder sustituirlos en pruebas.
+  AuthController({
+    AuthService? authService,
+    UsuariosService? usuariosService,
+  }) : _authService = authService ?? AuthService(),
+       _usuariosService = usuariosService ?? UsuariosService();
 
   final AuthService _authService;
+  final UsuariosService _usuariosService;
 
   Usuario? _usuario;
   bool _cargando = false;
@@ -38,17 +45,68 @@ class AuthController extends ChangeNotifier {
   /// navegación principal.
   bool get haySesion => _usuario != null;
 
-  /// Crea una cuenta nueva y la deja como sesión activa.
+  /// Crea una cuenta nueva junto con su perfil y la deja como sesión activa.
   ///
-  /// Devuelve `true` cuando el registro se completa; si falla, el detalle queda
-  /// disponible en [error].
-  Future<bool> registrar({
+  /// El registro ocurre en dos pasos encadenados: primero Firebase crea la
+  /// cuenta y devuelve el token, y con ese token el backend guarda los datos
+  /// personales. La sesión solo se abre cuando los dos pasos funcionan, para
+  /// que nadie entre a la aplicación sin perfil guardado.
+  ///
+  /// Devuelve `true` cuando el registro se completa; si falla, el detalle
+  /// queda disponible en [error].
+  Future<bool> registrarConPerfil({
     required String email,
     required String password,
-  }) {
-    return _ejecutarAutenticacion(
-      () => _authService.registrar(email: email, password: password),
-    );
+    required String nombre,
+    required String apellido,
+    required String telefono,
+    required DateTime fechaNacimiento,
+    required String nacionalidad,
+  }) async {
+    _cargando = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final usuario = await _authService.registrar(
+        email: email,
+        password: password,
+      );
+
+      // El correo se guarda en los dos campos que maneja el backend, y el uid
+      // es el que acaba de asignar Firebase.
+      final perfil = PerfilUsuario(
+        uid: usuario.uid,
+        email: usuario.email,
+        correo: usuario.email,
+        nombre: nombre.trim(),
+        apellido: apellido.trim(),
+        telefono: telefono.trim(),
+        nacionalidad: nacionalidad.trim(),
+        fechaNacimiento: fechaNacimiento,
+      );
+
+      await _usuariosService.registrarPerfil(
+        perfil: perfil,
+        idToken: usuario.idToken,
+      );
+
+      _usuario = usuario;
+      return true;
+    } on AuthException catch (excepcion) {
+      _error = _mensajeDeError(excepcion.codigo);
+      return false;
+    } on UsuariosException catch (excepcion) {
+      // La cuenta de Firebase ya quedó creada, pero sus datos no se
+      // guardaron, así que se avisa para que el usuario pueda reintentar.
+      _error =
+          '${PerfilController.mensajeDeError(excepcion)} '
+          'Tu cuenta fue creada: inicia sesión para completar tus datos.';
+      return false;
+    } finally {
+      _cargando = false;
+      notifyListeners();
+    }
   }
 
   /// Valida las credenciales y abre la sesión.
@@ -58,10 +116,24 @@ class AuthController extends ChangeNotifier {
   Future<bool> iniciarSesion({
     required String email,
     required String password,
-  }) {
-    return _ejecutarAutenticacion(
-      () => _authService.iniciarSesion(email: email, password: password),
-    );
+  }) async {
+    _cargando = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _usuario = await _authService.iniciarSesion(
+        email: email,
+        password: password,
+      );
+      return true;
+    } on AuthException catch (excepcion) {
+      _error = _mensajeDeError(excepcion.codigo);
+      return false;
+    } finally {
+      _cargando = false;
+      notifyListeners();
+    }
   }
 
   /// Descarta la sesión activa.
@@ -79,30 +151,6 @@ class AuthController extends ChangeNotifier {
 
     _error = null;
     notifyListeners();
-  }
-
-  /// Ejecuta una operación de autenticación controlando carga y errores.
-  ///
-  /// El registro y el inicio de sesión siguen exactamente la misma secuencia
-  /// (activar la carga, llamar al servicio, guardar el usuario o el error y
-  /// apagar la carga), por lo que ambos la comparten.
-  Future<bool> _ejecutarAutenticacion(
-    Future<Usuario> Function() operacion,
-  ) async {
-    _cargando = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      _usuario = await operacion();
-      return true;
-    } on AuthException catch (excepcion) {
-      _error = _mensajeDeError(excepcion.codigo);
-      return false;
-    } finally {
-      _cargando = false;
-      notifyListeners();
-    }
   }
 
   /// Traduce el código técnico de Firebase al mensaje que lee el usuario.
@@ -177,8 +225,7 @@ class AuthController extends ChangeNotifier {
       return 'La contraseña es obligatoria';
     }
 
-    if (exigirLongitudMinima &&
-        password.length < minimoCaracteresPassword) {
+    if (exigirLongitudMinima && password.length < minimoCaracteresPassword) {
       return 'La contraseña debe tener al menos '
           '$minimoCaracteresPassword caracteres';
     }

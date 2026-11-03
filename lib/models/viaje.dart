@@ -33,6 +33,7 @@ class Viaje {
   /// Solo se admite un viaje en este estado por usuario: intentar crear otro
   /// mientras uno sigue disponible responde 400.
   static const String estadoDisponible = 'disponible';
+  static const String estadoCompletado = 'completado';
 
   /// Identificador que asigna el backend.
   ///
@@ -65,4 +66,23 @@ class Viaje {
       'fechaViaje': formatearFechaApi(fechaViaje),
     };
   }
+
+    Viaje copyWith({
+  String? id,
+  String? numeroVuelo,
+  String? ciudadOrigen,
+  String? ciudadDestino,
+  DateTime? fechaViaje,
+  String? estado,
+}) {
+  return Viaje(
+    id: id ?? this.id,
+    numeroVuelo: numeroVuelo ?? this.numeroVuelo,
+    ciudadOrigen: ciudadOrigen ?? this.ciudadOrigen,
+    ciudadDestino: ciudadDestino ?? this.ciudadDestino,
+    fechaViaje: fechaViaje ?? this.fechaViaje,
+    estado: estado ?? this.estado,
+  );
+}
+
 }

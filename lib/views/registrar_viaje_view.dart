@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../controllers/registrar_viaje_controller.dart';
-import '../models/viaje.dart';
 import '../theme/app_theme.dart';
 import '../utils/formato_fecha.dart';
 
 /// Formulario de registro de un viaje.
 ///
-/// Se abre como pantalla propia y devuelve el [Viaje] construido al cerrarse,
-/// de modo que quien la abrió decide qué hacer con él.
+/// Recibe el ID Token de Firebase para poder registrar el viaje
+/// mediante el endpoint protegido del backend.
 class RegistrarViajeView extends StatefulWidget {
-  const RegistrarViajeView({super.key});
+  const RegistrarViajeView({
+    super.key,
+    required this.idToken,
+  });
+
+  /// Token de Firebase del usuario autenticado.
+  final String idToken;
 
   @override
   State<RegistrarViajeView> createState() =>
@@ -19,14 +24,13 @@ class RegistrarViajeView extends StatefulWidget {
 
 class _RegistrarViajeViewState
     extends State<RegistrarViajeView> {
-  /// Llave del formulario, necesaria para disparar los validadores.
+  /// Llave utilizada para ejecutar las validaciones del formulario.
   final _formKey = GlobalKey<FormState>();
 
-  /// Controlador del campo de número de vuelo.
+  /// Controlador del campo número de vuelo.
   final _numeroVueloController = TextEditingController();
 
-  /// Controlador del formulario. Se crea aquí porque su información solo tiene
-  /// sentido mientras esta pantalla está abierta.
+  /// Controlador MVC del registro de viajes.
   final RegistrarViajeController _controller =
       RegistrarViajeController();
 
@@ -37,14 +41,12 @@ class _RegistrarViajeViewState
     super.dispose();
   }
 
-  /// Abre el calendario y entrega la fecha elegida al controlador.
-  ///
-  /// El calendario se queda en la vista porque necesita el contexto de la
-  /// interfaz; los límites de fechas los define el controlador.
+  /// Abre el calendario para seleccionar la fecha del viaje.
   Future<void> _seleccionarFecha() async {
     final fechaElegida = await showDatePicker(
       context: context,
-      initialDate: _controller.fecha ?? _controller.fechaMinima,
+      initialDate:
+          _controller.fecha ?? _controller.fechaMinima,
       firstDate: _controller.fechaMinima,
       lastDate: _controller.fechaMaxima,
     );
@@ -53,32 +55,54 @@ class _RegistrarViajeViewState
       return;
     }
 
-    _controller.seleccionarFecha(fechaElegida);
+    _controller.seleccionarFecha(
+      fechaElegida,
+    );
   }
 
-  /// Valida el formulario y devuelve el viaje a la pantalla anterior.
-  void _guardarViaje() {
+  /// Valida el formulario y registra el viaje realmente
+  /// en el backend de Lapticon.
+  Future<void> _guardarViaje() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    // Reglas que no pertenecen a un campo concreto: fecha elegida y ciudades
-    // distintas entre sí.
-    final problema = _controller.validarSeleccion();
+    final problema =
+        _controller.validarSeleccion();
 
     if (problema != null) {
       _mostrarAviso(problema);
       return;
     }
 
-    final viaje = _controller.construirViaje(
-      _numeroVueloController.text,
+    final viaje =
+        await _controller.registrarViaje(
+      numeroVuelo:
+          _numeroVueloController.text,
+      idToken: widget.idToken,
     );
 
-    Navigator.pop(context, viaje);
+    if (!mounted) {
+      return;
+    }
+
+    if (viaje == null) {
+      _mostrarAviso(
+        _controller.error ??
+            'No fue posible registrar el viaje.',
+      );
+      return;
+    }
+
+    /// Devuelve a MainNavigationView el viaje que realmente
+    /// creó el backend.
+    Navigator.pop(
+      context,
+      viaje,
+    );
   }
 
-  /// Muestra un aviso con el problema detectado en el formulario.
+  /// Muestra errores o validaciones al usuario.
   void _mostrarAviso(String mensaje) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -109,14 +133,17 @@ class _RegistrarViajeViewState
         child: Form(
           key: _formKey,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
             children: [
-              // Encabezado descriptivo del formulario.
+              /// Encabezado.
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(20),
+                padding:
+                    const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEAF2FF),
+                  color:
+                      const Color(0xFFEAF2FF),
                   borderRadius:
                       BorderRadius.circular(20),
                 ),
@@ -124,7 +151,8 @@ class _RegistrarViajeViewState
                   children: [
                     CircleAvatar(
                       radius: 25,
-                      backgroundColor: AppTheme.primary,
+                      backgroundColor:
+                          AppTheme.primary,
                       child: Icon(
                         Icons.flight_takeoff,
                         color: Colors.white,
@@ -134,7 +162,8 @@ class _RegistrarViajeViewState
                     Expanded(
                       child: Column(
                         crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                            CrossAxisAlignment
+                                .start,
                         children: [
                           Text(
                             'Nuevo viaje',
@@ -142,8 +171,8 @@ class _RegistrarViajeViewState
                               fontSize: 18,
                               fontWeight:
                                   FontWeight.bold,
-                              color:
-                                  AppTheme.textPrimary,
+                              color: AppTheme
+                                  .textPrimary,
                             ),
                           ),
                           SizedBox(height: 4),
@@ -163,33 +192,38 @@ class _RegistrarViajeViewState
 
               const SizedBox(height: 28),
 
-              // Número de vuelo. Se escribe en mayúsculas porque es el formato
-              // con el que se identifican los vuelos.
+              /// Número de vuelo.
               const Text(
                 'Número de vuelo',
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
                 ),
               ),
+
               const SizedBox(height: 8),
 
               TextFormField(
-                controller: _numeroVueloController,
+                controller:
+                    _numeroVueloController,
                 textCapitalization:
                     TextCapitalization.characters,
-                decoration: const InputDecoration(
+                decoration:
+                    const InputDecoration(
                   hintText: 'Ejemplo: AA123',
                   prefixIcon: Icon(
-                    Icons.confirmation_number_outlined,
+                    Icons
+                        .confirmation_number_outlined,
                   ),
                 ),
-                validator: _controller.validarNumeroVuelo,
+                validator:
+                    _controller.validarNumeroVuelo,
               ),
 
               const SizedBox(height: 22),
 
-              // Selectores de ruta y calendario. El ListenableBuilder los
-              // redibuja cuando el controlador registra una nueva selección.
+              /// Los campos dependientes del controlador
+              /// se actualizan cuando ChangeNotifier llama
+              /// a notifyListeners().
               ListenableBuilder(
                 listenable: _controller,
                 builder: (context, _) {
@@ -200,26 +234,33 @@ class _RegistrarViajeViewState
                       const Text(
                         'Ciudad de origen',
                         style: TextStyle(
-                          fontWeight: FontWeight.w600,
+                          fontWeight:
+                              FontWeight.w600,
                         ),
                       ),
+
                       const SizedBox(height: 8),
 
-                      DropdownButtonFormField<String>(
-                        initialValue: _controller.origen,
+                      DropdownButtonFormField<
+                          String>(
+                        initialValue:
+                            _controller.origen,
                         decoration:
                             const InputDecoration(
                           hintText:
                               'Selecciona el origen',
                           prefixIcon: Icon(
-                            Icons.flight_takeoff,
+                            Icons
+                                .flight_takeoff,
                           ),
                         ),
-                        items: _opcionesDeCiudad(),
-                        onChanged:
-                            _controller.seleccionarOrigen,
+                        items:
+                            _opcionesDeCiudad(),
+                        onChanged: _controller
+                            .seleccionarOrigen,
                         validator:
-                            _controller.validarCiudad,
+                            _controller
+                                .validarCiudad,
                       ),
 
                       const SizedBox(height: 22),
@@ -227,13 +268,17 @@ class _RegistrarViajeViewState
                       const Text(
                         'Ciudad de destino',
                         style: TextStyle(
-                          fontWeight: FontWeight.w600,
+                          fontWeight:
+                              FontWeight.w600,
                         ),
                       ),
+
                       const SizedBox(height: 8),
 
-                      DropdownButtonFormField<String>(
-                        initialValue: _controller.destino,
+                      DropdownButtonFormField<
+                          String>(
+                        initialValue:
+                            _controller.destino,
                         decoration:
                             const InputDecoration(
                           hintText:
@@ -242,11 +287,13 @@ class _RegistrarViajeViewState
                             Icons.flight_land,
                           ),
                         ),
-                        items: _opcionesDeCiudad(),
+                        items:
+                            _opcionesDeCiudad(),
                         onChanged: _controller
                             .seleccionarDestino,
                         validator:
-                            _controller.validarCiudad,
+                            _controller
+                                .validarCiudad,
                       ),
 
                       const SizedBox(height: 22),
@@ -254,14 +301,18 @@ class _RegistrarViajeViewState
                       const Text(
                         'Fecha del viaje',
                         style: TextStyle(
-                          fontWeight: FontWeight.w600,
+                          fontWeight:
+                              FontWeight.w600,
                         ),
                       ),
+
                       const SizedBox(height: 8),
 
                       _SelectorFecha(
-                        fecha: _controller.fecha,
-                        onTap: _seleccionarFecha,
+                        fecha:
+                            _controller.fecha,
+                        onTap:
+                            _seleccionarFecha,
                       ),
                     ],
                   );
@@ -270,12 +321,42 @@ class _RegistrarViajeViewState
 
               const SizedBox(height: 32),
 
-              FilledButton.icon(
-                onPressed: _guardarViaje,
-                icon: const Icon(Icons.flight_takeoff),
-                label: const Text(
-                  'Registrar viaje',
-                ),
+              /// Este ListenableBuilder controla el estado
+              /// de carga mientras se espera al backend.
+              ListenableBuilder(
+                listenable: _controller,
+                builder: (context, _) {
+                  return SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed:
+                          _controller.cargando
+                              ? null
+                              : _guardarViaje,
+                      icon: _controller.cargando
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child:
+                                  CircularProgressIndicator(
+                                strokeWidth:
+                                    2.5,
+                                color:
+                                    Colors.white,
+                              ),
+                            )
+                          : const Icon(
+                              Icons
+                                  .flight_takeoff,
+                            ),
+                      label: Text(
+                        _controller.cargando
+                            ? 'Registrando...'
+                            : 'Registrar viaje',
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -284,11 +365,14 @@ class _RegistrarViajeViewState
     );
   }
 
-  /// Construye las opciones de los dos selectores de ciudad.
-  List<DropdownMenuItem<String>> _opcionesDeCiudad() {
-    return RegistrarViajeController.ciudadesDisponibles
+  /// Crea las opciones utilizadas por origen y destino.
+  List<DropdownMenuItem<String>>
+      _opcionesDeCiudad() {
+    return RegistrarViajeController
+        .ciudadesDisponibles
         .map(
-          (ciudad) => DropdownMenuItem(
+          (ciudad) =>
+              DropdownMenuItem<String>(
             value: ciudad,
             child: Text(ciudad),
           ),
@@ -297,17 +381,14 @@ class _RegistrarViajeViewState
   }
 }
 
-/// Campo con apariencia de selector que abre el calendario al pulsarlo.
+/// Selector visual de fecha.
 class _SelectorFecha extends StatelessWidget {
   const _SelectorFecha({
     required this.fecha,
     required this.onTap,
   });
 
-  /// Fecha elegida, o nulo mientras no se elige ninguna.
   final DateTime? fecha;
-
-  /// Acción que abre el calendario.
   final VoidCallback onTap;
 
   @override
@@ -316,23 +397,29 @@ class _SelectorFecha extends StatelessWidget {
 
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius:
+          BorderRadius.circular(14),
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius:
+            BorderRadius.circular(14),
         onTap: onTap,
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(17),
+          padding:
+              const EdgeInsets.all(17),
           decoration: BoxDecoration(
             border: Border.all(
-              color: const Color(0xFFE4E7EC),
+              color:
+                  const Color(0xFFE4E7EC),
             ),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius:
+                BorderRadius.circular(14),
           ),
           child: Row(
             children: [
               const Icon(
-                Icons.calendar_month_outlined,
+                Icons
+                    .calendar_month_outlined,
                 color: AppTheme.primary,
               ),
               const SizedBox(width: 14),
@@ -340,17 +427,22 @@ class _SelectorFecha extends StatelessWidget {
                 child: Text(
                   sinFecha
                       ? 'Seleccionar fecha'
-                      : formatearFechaVisible(fecha!),
+                      : formatearFechaVisible(
+                          fecha!,
+                        ),
                   style: TextStyle(
                     color: sinFecha
-                        ? AppTheme.textSecondary
-                        : AppTheme.textPrimary,
+                        ? AppTheme
+                            .textSecondary
+                        : AppTheme
+                            .textPrimary,
                   ),
                 ),
               ),
               const Icon(
                 Icons.chevron_right,
-                color: Color(0xFF98A2B3),
+                color:
+                    Color(0xFF98A2B3),
               ),
             ],
           ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../controllers/auth_controller.dart';
+import '../controllers/perfil_controller.dart';
 import '../controllers/viajes_controller.dart';
 import '../models/viaje.dart';
 import '../theme/app_theme.dart';
@@ -29,53 +30,220 @@ class MainNavigationView extends StatefulWidget {
 
 class _MainNavigationViewState
     extends State<MainNavigationView> {
-  /// Pestaña visible actualmente. Es estado de navegación, propio de la vista.
+
+  /// Pestaña visible actualmente.
   int _indiceSeleccionado = 0;
 
-  /// Controlador de los viajes registrados. Se crea en este nivel porque las
-  /// pestañas de inicio y de viajes leen la misma lista.
+  /// Controlador de viajes.
   final ViajesController _viajesController =
       ViajesController();
+
+  /// Controlador del perfil. Se crea en este nivel para que la pestaña de
+  /// perfil conserve los datos al cambiar de pestaña.
+  final PerfilController _perfilController =
+      PerfilController();
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarViajes();
+    _cargarPerfil();
+  }
 
   @override
   void dispose() {
     _viajesController.dispose();
+    _perfilController.dispose();
     super.dispose();
+  }
+
+  Future<void> _cargarViajes() async {
+    final usuario =
+        widget.authController.usuario;
+
+    if (usuario == null) {
+      return;
+    }
+
+    await _viajesController.cargarViajes(
+      idToken: usuario.idToken,
+    );
+  }
+
+  /// Consulta los datos personales del usuario autenticado.
+  Future<void> _cargarPerfil() async {
+    final usuario =
+        widget.authController.usuario;
+
+    if (usuario == null) {
+      return;
+    }
+
+    await _perfilController.cargarPerfil(
+      uid: usuario.uid,
+      idToken: usuario.idToken,
+    );
   }
 
   /// Abre el formulario de viaje y agrega al controlador el viaje devuelto.
   Future<void> _registrarViaje() async {
-    final nuevoViaje = await Navigator.push<Viaje>(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            const RegistrarViajeView(),
-      ),
-    );
+  final usuario =
+      widget.authController.usuario;
 
-    // El resultado es nulo cuando el formulario se cierra sin registrar nada.
-    if (nuevoViaje == null) {
-      return;
-    }
-
-    _viajesController.agregar(nuevoViaje);
-
+  if (usuario == null) {
     if (!mounted) {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text(
-          'Viaje registrado correctamente',
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Debes iniciar sesión para registrar un viaje.',
         ),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+        behavior:
+            SnackBarBehavior.floating,
+      ),
+    );
+
+    return;
+  }
+
+  final nuevoViaje =
+      await Navigator.push<Viaje>(
+    context,
+    MaterialPageRoute(
+      builder: (context) =>
+          RegistrarViajeView(
+        idToken: usuario.idToken,
+      ),
+    ),
+  );
+
+  if (nuevoViaje == null) {
+    return;
+  }
+
+  _viajesController.agregar(
+    nuevoViaje,
+  );
+
+  if (!mounted) {
+    return;
+  }
+
+  ScaffoldMessenger.of(context)
+      .showSnackBar(
+    SnackBar(
+      content: const Text(
+        'Viaje registrado correctamente',
+      ),
+      behavior:
+          SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.circular(12),
+      ),
+    ),
+  );
+}
+
+
+Future<void> _completarViaje(
+  Viaje viaje,
+) async {
+  final usuario =
+      widget.authController.usuario;  
+
+  if (usuario == null) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Debes iniciar sesión.',
         ),
       ),
     );
+
+    return;
   }
+
+  final confirmado =
+      await showDialog<bool>(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title:
+            const Text('Completar viaje'),
+        content: Text(
+          '¿Deseas marcar el viaje ${viaje.numeroVuelo} como completado?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(
+                context,
+                false,
+              );
+            },
+            child:
+                const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(
+                context,
+                true,
+              );
+            },
+            child:
+                const Text('Completar'),
+          ),
+        ],
+      );
+    },
+  );
+
+  if (confirmado != true) {
+    return;
+  }
+
+  final resultado =
+      await _viajesController
+          .completarViaje(
+    viaje: viaje,
+    idToken: usuario.idToken,
+  );
+
+  if (!mounted) {
+    return;
+  }
+
+  if (!resultado) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
+      SnackBar(
+        content: Text(
+          _viajesController.error ??
+              'No fue posible completar el viaje.',
+        ),
+      ),
+    );
+
+    return;
+  }
+
+  ScaffoldMessenger.of(context)
+      .showSnackBar(
+    const SnackBar(
+      content: Text(
+        'Viaje marcado como completado',
+      ),
+      behavior:
+          SnackBarBehavior.floating,
+    ),
+  );
+}
 
   /// Cambia a la pestaña de viajes.
   void _irAViajes() {
@@ -106,9 +274,11 @@ class _MainNavigationViewState
               MisViajesView(
                 viajes: _viajesController.viajes,
                 onRegistrarViaje: _registrarViaje,
+                onCompletarViaje: _completarViaje,
               ),
               PerfilView(
                 authController: widget.authController,
+                perfilController: _perfilController,
               ),
             ],
           );
