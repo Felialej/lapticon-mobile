@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../controllers/auth_controller.dart';
 import '../theme/app_theme.dart';
+import '../utils/validadores.dart';
+import 'widgets/campos_formulario.dart';
 
 /// Pantalla de creación de cuenta.
 ///
-/// Comparte el mismo [AuthController] que el inicio de sesión, porque ambas
-/// pantallas operan sobre la misma sesión y reutilizan sus validaciones.
+/// Pide los datos personales que guarda el backend y las credenciales que
+/// crea Firebase. Comparte el mismo [AuthController] que el inicio de sesión,
+/// porque ambas pantallas operan sobre la misma sesión.
 class RegistroView extends StatefulWidget {
   const RegistroView({
     super.key,
@@ -24,9 +27,19 @@ class _RegistroViewState extends State<RegistroView> {
   /// Llave del formulario, necesaria para disparar los validadores.
   final _formKey = GlobalKey<FormState>();
 
-  /// Controladores de los campos de texto.
+  /// Controladores de los campos de texto, uno por dato pedido.
+  final _nombreController = TextEditingController();
+  final _apellidoController = TextEditingController();
+  final _telefonoController = TextEditingController();
+  final _nacionalidadController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  /// Fecha de nacimiento elegida en el calendario.
+  ///
+  /// Se guarda aquí, junto a los controladores de texto, porque es el
+  /// contenido de un campo más del formulario.
+  DateTime? _fechaNacimiento;
 
   /// Indica si la contraseña se muestra oculta. Es estado puramente visual.
   bool _ocultarPassword = true;
@@ -36,9 +49,36 @@ class _RegistroViewState extends State<RegistroView> {
 
   @override
   void dispose() {
+    _nombreController.dispose();
+    _apellidoController.dispose();
+    _telefonoController.dispose();
+    _nacionalidadController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  /// Abre el calendario para elegir la fecha de nacimiento.
+  ///
+  /// El rango va desde 1900 hasta hoy, de modo que no se puedan elegir fechas
+  /// futuras.
+  Future<void> _seleccionarFechaNacimiento() async {
+    final hoy = DateTime.now();
+
+    final fechaElegida = await showDatePicker(
+      context: context,
+      initialDate: _fechaNacimiento ?? DateTime(hoy.year - 20),
+      firstDate: DateTime(1900),
+      lastDate: hoy,
+    );
+
+    if (fechaElegida == null) {
+      return;
+    }
+
+    setState(() {
+      _fechaNacimiento = fechaElegida;
+    });
   }
 
   /// Valida el formulario, pide crear la cuenta y confirma el resultado.
@@ -51,9 +91,21 @@ class _RegistroViewState extends State<RegistroView> {
       return;
     }
 
-    final exito = await _auth.registrar(
+    // La fecha se revisa aparte porque se elige en un calendario y no en un
+    // campo del formulario.
+    if (_fechaNacimiento == null) {
+      _mostrarMensaje('Selecciona tu fecha de nacimiento');
+      return;
+    }
+
+    final exito = await _auth.registrarConPerfil(
       email: _emailController.text,
       password: _passwordController.text,
+      nombre: _nombreController.text,
+      apellido: _apellidoController.text,
+      telefono: _telefonoController.text,
+      fechaNacimiento: _fechaNacimiento!,
+      nacionalidad: _nacionalidadController.text,
     );
 
     if (!mounted) {
@@ -61,7 +113,9 @@ class _RegistroViewState extends State<RegistroView> {
     }
 
     if (!exito) {
-      _mostrarError();
+      _mostrarMensaje(
+        _auth.error ?? 'No fue posible crear la cuenta.',
+      );
       return;
     }
 
@@ -74,13 +128,11 @@ class _RegistroViewState extends State<RegistroView> {
     Navigator.pop(context);
   }
 
-  /// Muestra el mensaje de error que preparó el controlador.
-  void _mostrarError() {
+  /// Muestra un aviso en la parte inferior de la pantalla.
+  void _mostrarMensaje(String mensaje) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          _auth.error ?? 'No fue posible crear la cuenta.',
-        ),
+        content: Text(mensaje),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -147,13 +199,11 @@ class _RegistroViewState extends State<RegistroView> {
               ),
               child: Form(
                 key: _formKey,
-                autovalidateMode:
-                    AutovalidateMode.onUserInteraction,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 20),
 
                     // Encabezado con el logotipo de la aplicación.
                     Center(
@@ -162,8 +212,7 @@ class _RegistroViewState extends State<RegistroView> {
                         height: 76,
                         decoration: BoxDecoration(
                           color: AppTheme.primary,
-                          borderRadius:
-                              BorderRadius.circular(22),
+                          borderRadius: BorderRadius.circular(22),
                         ),
                         child: const Icon(
                           Icons.flight_rounded,
@@ -197,37 +246,92 @@ class _RegistroViewState extends State<RegistroView> {
                       ),
                     ),
 
-                    const SizedBox(height: 38),
+                    const SizedBox(height: 32),
 
-                    // Campo de correo, con la misma regla de formato que usa
-                    // el inicio de sesión.
-                    const Text(
-                      'Correo electrónico',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                      ),
+                    // Datos personales que se guardan en el backend.
+                    const _TituloSeccion(
+                      titulo: 'Datos personales',
                     ),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 16),
 
-                    TextFormField(
+                    CampoTexto(
+                      etiqueta: 'Nombre',
+                      controller: _nombreController,
+                      hintText: 'Ejemplo: Ana',
+                      icono: Icons.person_outline,
+                      textCapitalization: TextCapitalization.words,
+                      validator: (valor) =>
+                          validarTextoObligatorio(valor, 'nombre'),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    CampoTexto(
+                      etiqueta: 'Apellido',
+                      controller: _apellidoController,
+                      hintText: 'Ejemplo: Gómez',
+                      icono: Icons.badge_outlined,
+                      textCapitalization: TextCapitalization.words,
+                      validator: (valor) =>
+                          validarTextoObligatorio(valor, 'apellido'),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    CampoTexto(
+                      etiqueta: 'Teléfono',
+                      controller: _telefonoController,
+                      hintText: 'Ejemplo: 3001234567',
+                      icono: Icons.phone_outlined,
+                      keyboardType: TextInputType.phone,
+                      validator: validarTelefono,
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    SelectorFecha(
+                      etiqueta: 'Fecha de nacimiento',
+                      fecha: _fechaNacimiento,
+                      onTap: _seleccionarFechaNacimiento,
+                      textoVacio: 'AAAA/MM/DD',
+                      icono: Icons.cake_outlined,
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    CampoTexto(
+                      etiqueta: 'Nacionalidad',
+                      controller: _nacionalidadController,
+                      hintText: 'Ejemplo: Colombia',
+                      icono: Icons.public_outlined,
+                      textCapitalization: TextCapitalization.words,
+                      validator: (valor) =>
+                          validarTextoObligatorio(valor, 'nacionalidad'),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Credenciales con las que se inicia sesión.
+                    const _TituloSeccion(
+                      titulo: 'Datos de acceso',
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    CampoTexto(
+                      etiqueta: 'Correo electrónico',
                       controller: _emailController,
-                      keyboardType:
-                          TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        hintText: 'correo@ejemplo.com',
-                        prefixIcon: Icon(
-                          Icons.email_outlined,
-                        ),
-                      ),
+                      hintText: 'correo@ejemplo.com',
+                      icono: Icons.email_outlined,
+                      keyboardType: TextInputType.emailAddress,
                       validator: _auth.validarCorreo,
                     ),
 
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 20),
 
-                    // Campo de contraseña. A diferencia del login, aquí se
-                    // exige la longitud mínima antes de llamar a Firebase.
+                    // La contraseña no usa CampoTexto porque necesita el botón
+                    // que alterna entre mostrarla y ocultarla.
                     const Text(
                       'Contraseña',
                       style: TextStyle(
@@ -241,11 +345,6 @@ class _RegistroViewState extends State<RegistroView> {
                       controller: _passwordController,
                       obscureText: _ocultarPassword,
                       textInputAction: TextInputAction.done,
-                      onFieldSubmitted: (_) {
-                        if (!cargando) {
-                          _registrar();
-                        }
-                      },
                       decoration: InputDecoration(
                         hintText:
                             'Mínimo '
@@ -257,53 +356,23 @@ class _RegistroViewState extends State<RegistroView> {
                         suffixIcon: IconButton(
                           onPressed: () {
                             setState(() {
-                              _ocultarPassword =
-                                  !_ocultarPassword;
+                              _ocultarPassword = !_ocultarPassword;
                             });
                           },
                           icon: Icon(
                             _ocultarPassword
                                 ? Icons.visibility_outlined
-                                : Icons
-                                      .visibility_off_outlined,
+                                : Icons.visibility_off_outlined,
                           ),
                         ),
                       ),
-                      validator: (valor) =>
-                          _auth.validarPassword(
-                            valor,
-                            exigirLongitudMinima: true,
-                          ),
+                      validator: (valor) => _auth.validarPassword(
+                        valor,
+                        exigirLongitudMinima: true,
+                      ),
                     ),
 
-                    const SizedBox(height: 12),
-
-                    // Aclaración del requisito de la contraseña.
-                    Row(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.info_outline,
-                          size: 17,
-                          color: AppTheme.textSecondary,
-                        ),
-                        const SizedBox(width: 7),
-                        Expanded(
-                          child: Text(
-                            'Tu contraseña debe tener como mínimo '
-                            '${AuthController.minimoCaracteresPassword}'
-                            ' caracteres.',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppTheme.textSecondary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 28),
 
                     // Durante la carga el botón se deshabilita y muestra el
                     // indicador de progreso.
@@ -313,11 +382,10 @@ class _RegistroViewState extends State<RegistroView> {
                           ? const SizedBox(
                               width: 22,
                               height: 22,
-                              child:
-                                  CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    color: Colors.white,
-                                  ),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
                             )
                           : const Text(
                               'Crear cuenta',
@@ -328,8 +396,7 @@ class _RegistroViewState extends State<RegistroView> {
 
                     // Regreso al inicio de sesión.
                     Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Text(
                           '¿Ya tienes cuenta?',
@@ -338,9 +405,7 @@ class _RegistroViewState extends State<RegistroView> {
                           ),
                         ),
                         TextButton(
-                          onPressed: cargando
-                              ? null
-                              : _irALogin,
+                          onPressed: cargando ? null : _irALogin,
                           child: const Text(
                             'Iniciar sesión',
                             style: TextStyle(
@@ -350,17 +415,6 @@ class _RegistroViewState extends State<RegistroView> {
                         ),
                       ],
                     ),
-
-                    const SizedBox(height: 10),
-
-                    const Text(
-                      'Al crear una cuenta podrás acceder a las funcionalidades de Lapticon.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -368,6 +422,40 @@ class _RegistroViewState extends State<RegistroView> {
           },
         ),
       ),
+    );
+  }
+}
+
+/// Título que separa los bloques del formulario.
+class _TituloSeccion extends StatelessWidget {
+  const _TituloSeccion({
+    required this.titulo,
+  });
+
+  final String titulo;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 18,
+          decoration: BoxDecoration(
+            color: AppTheme.secondary,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          titulo,
+          style: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.textPrimary,
+          ),
+        ),
+      ],
     );
   }
 }

@@ -10,6 +10,14 @@ String formatearFechaVisible(DateTime fecha) {
       '${fecha.year}';
 }
 
+/// Convierte una fecha al texto `AAAA/MM/DD`, el formato con el que se piden y
+/// se muestran las fechas de nacimiento.
+String formatearFechaAnioMesDia(DateTime fecha) {
+  return '${fecha.year}/'
+      '${_dosDigitos(fecha.month)}/'
+      '${_dosDigitos(fecha.day)}';
+}
+
 /// Convierte una fecha al texto `yyyy-MM-dd` que esperan los endpoints del
 /// backend, que trabajan con fechas sin hora.
 String formatearFechaApi(DateTime fecha) {

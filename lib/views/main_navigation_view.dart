@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../controllers/auth_controller.dart';
+import '../controllers/perfil_controller.dart';
 import '../controllers/viajes_controller.dart';
 import '../models/viaje.dart';
 import '../theme/app_theme.dart';
@@ -37,10 +38,23 @@ class _MainNavigationViewState
   final ViajesController _viajesController =
       ViajesController();
 
+  /// Controlador del perfil. Se crea en este nivel para que la pestaña de
+  /// perfil conserve los datos al cambiar de pestaña.
+  final PerfilController _perfilController =
+      PerfilController();
+
   @override
   void initState() {
     super.initState();
     _cargarViajes();
+    _cargarPerfil();
+  }
+
+  @override
+  void dispose() {
+    _viajesController.dispose();
+    _perfilController.dispose();
+    super.dispose();
   }
 
   Future<void> _cargarViajes() async {
@@ -52,6 +66,21 @@ class _MainNavigationViewState
     }
 
     await _viajesController.cargarViajes(
+      idToken: usuario.idToken,
+    );
+  }
+
+  /// Consulta los datos personales del usuario autenticado.
+  Future<void> _cargarPerfil() async {
+    final usuario =
+        widget.authController.usuario;
+
+    if (usuario == null) {
+      return;
+    }
+
+    await _perfilController.cargarPerfil(
+      uid: usuario.uid,
       idToken: usuario.idToken,
     );
   }
@@ -249,6 +278,7 @@ Future<void> _completarViaje(
               ),
               PerfilView(
                 authController: widget.authController,
+                perfilController: _perfilController,
               ),
             ],
           );
