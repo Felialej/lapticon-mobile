@@ -18,6 +18,9 @@ class CampoTexto extends StatelessWidget {
     this.keyboardType,
     this.textCapitalization = TextCapitalization.none,
     this.textInputAction = TextInputAction.next,
+    this.obscureText = false,
+    this.suffixIcon,
+    this.onFieldSubmitted,
   });
 
   /// Texto que describe el dato pedido.
@@ -43,27 +46,28 @@ class CampoTexto extends StatelessWidget {
 
   /// Acción del teclado: avanzar al campo siguiente o terminar.
   final TextInputAction textInputAction;
+  final bool obscureText;
+  final Widget? suffixIcon;
+  final ValueChanged<String>? onFieldSubmitted;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          etiqueta,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        Text(etiqueta, style: const TextStyle(fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
           textCapitalization: textCapitalization,
           textInputAction: textInputAction,
+          obscureText: obscureText,
+          onFieldSubmitted: onFieldSubmitted,
           decoration: InputDecoration(
             hintText: hintText,
             prefixIcon: Icon(icono),
+            suffixIcon: suffixIcon,
           ),
           validator: validator,
         ),
@@ -85,6 +89,7 @@ class SelectorFecha extends StatelessWidget {
     required this.onTap,
     this.textoVacio = 'Seleccionar fecha',
     this.icono = Icons.calendar_month_outlined,
+    this.usarTemaDeEntrada = false,
   });
 
   /// Texto que describe la fecha pedida.
@@ -101,64 +106,71 @@ class SelectorFecha extends StatelessWidget {
 
   /// Icono que acompaña al selector.
   final IconData icono;
+  final bool usarTemaDeEntrada;
 
   @override
   Widget build(BuildContext context) {
     final sinFecha = fecha == null;
+    final texto = sinFecha ? textoVacio : formatearFechaAnioMesDia(fecha!);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          etiqueta,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        Text(etiqueta, style: const TextStyle(fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
-        Material(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(14),
+        if (usarTemaDeEntrada)
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
             onTap: onTap,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(17),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: const Color(0xFFE4E7EC),
-                ),
-                borderRadius: BorderRadius.circular(14),
+            child: InputDecorator(
+              decoration: InputDecoration(
+                prefixIcon: Icon(icono),
+                suffixIcon: const Icon(Icons.chevron_right),
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    icono,
-                    color: AppTheme.primary,
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Text(
-                      sinFecha
-                          ? textoVacio
-                          : formatearFechaAnioMesDia(fecha!),
-                      style: TextStyle(
-                        color: sinFecha
-                            ? AppTheme.textSecondary
-                            : AppTheme.textPrimary,
+              child: Text(
+                texto,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: sinFecha
+                      ? Theme.of(context).inputDecorationTheme.hintStyle?.color
+                      : AppTheme.textPrimary,
+                ),
+              ),
+            ),
+          )
+        else
+          Material(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: onTap,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(17),
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFFE4E7EC)),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  children: [
+                    Icon(icono, color: AppTheme.primary),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        texto,
+                        style: TextStyle(
+                          color: sinFecha
+                              ? AppTheme.textSecondary
+                              : AppTheme.textPrimary,
+                        ),
                       ),
                     ),
-                  ),
-                  const Icon(
-                    Icons.chevron_right,
-                    color: Color(0xFF98A2B3),
-                  ),
-                ],
+                    const Icon(Icons.chevron_right, color: Color(0xFF98A2B3)),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
       ],
     );
   }

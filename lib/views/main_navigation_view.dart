@@ -9,11 +9,12 @@ import 'home_view.dart';
 import 'mis_viajes_view.dart';
 import 'perfil_view.dart';
 import 'registrar_viaje_view.dart';
+import 'selector_funcion_view.dart';
 
 /// Contenedor de la aplicación una vez iniciada la sesión.
 ///
-/// Mantiene la barra inferior y las tres pestañas, y es la dueña del
-/// [ViajesController] que inicio y viajes comparten.
+/// Mantiene la función elegida, la barra inferior y los controladores que
+/// comparten las pestañas.
 class MainNavigationView extends StatefulWidget {
   const MainNavigationView({
     super.key,
@@ -31,6 +32,10 @@ class MainNavigationView extends StatefulWidget {
 class _MainNavigationViewState
     extends State<MainNavigationView> {
 
+  Funcion _funcion = Funcion.viajero;
+  bool _eligiendoFuncion = true;
+  bool _viajesSolicitados = false;
+
   /// Pestaña visible actualmente.
   int _indiceSeleccionado = 0;
 
@@ -46,7 +51,6 @@ class _MainNavigationViewState
   @override
   void initState() {
     super.initState();
-    _cargarViajes();
     _cargarPerfil();
   }
 
@@ -252,8 +256,30 @@ Future<void> _completarViaje(
     });
   }
 
+  void _continuarConFuncion() {
+    setState(() {
+      _eligiendoFuncion = false;
+      _indiceSeleccionado = 0;
+    });
+
+    if (_funcion == Funcion.viajero && !_viajesSolicitados) {
+      _viajesSolicitados = true;
+      _cargarViajes();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_eligiendoFuncion) {
+      return SelectorFuncionView(
+        funcion: _funcion,
+        onSeleccionar: (funcion) => setState(() => _funcion = funcion),
+        onContinuar: _continuarConFuncion,
+      );
+    }
+
+    final esViajero = _funcion == Funcion.viajero;
+
     return Scaffold(
       // El ListenableBuilder redibuja las pestañas cuando la lista de viajes
       // cambia, de modo que el contador de inicio y el listado quedan al día.
@@ -265,20 +291,25 @@ Future<void> _completarViaje(
           return IndexedStack(
             index: _indiceSeleccionado,
             children: [
-              HomeView(
-                cantidadViajes:
-                    _viajesController.cantidad,
-                onRegistrarViaje: _registrarViaje,
-                onVerViajes: _irAViajes,
-              ),
-              MisViajesView(
-                viajes: _viajesController.viajes,
-                onRegistrarViaje: _registrarViaje,
-                onCompletarViaje: _completarViaje,
-              ),
+              if (esViajero) ...[
+                HomeView(
+                  cantidadViajes: _viajesController.cantidad,
+                  onRegistrarViaje: _registrarViaje,
+                  onVerViajes: _irAViajes,
+                ),
+                MisViajesView(
+                  viajes: _viajesController.viajes,
+                  onRegistrarViaje: _registrarViaje,
+                  onCompletarViaje: _completarViaje,
+                ),
+              ] else
+                const _InicioRemitente(),
               PerfilView(
                 authController: widget.authController,
                 perfilController: _perfilController,
+                onCambiarFuncion: () => setState(() {
+                  _eligiendoFuncion = true;
+                }),
               ),
             ],
           );
@@ -295,8 +326,8 @@ Future<void> _completarViaje(
             _indiceSeleccionado = index;
           });
         },
-        destinations: const [
-          NavigationDestination(
+        destinations: [
+          const NavigationDestination(
             icon: Icon(
               Icons.home_outlined,
             ),
@@ -306,17 +337,16 @@ Future<void> _completarViaje(
             ),
             label: 'Inicio',
           ),
-          NavigationDestination(
-            icon: Icon(
-              Icons.flight_outlined,
+          if (esViajero)
+            const NavigationDestination(
+              icon: Icon(Icons.flight_outlined),
+              selectedIcon: Icon(
+                Icons.flight_rounded,
+                color: AppTheme.primary,
+              ),
+              label: 'Viajes',
             ),
-            selectedIcon: Icon(
-              Icons.flight_rounded,
-              color: AppTheme.primary,
-            ),
-            label: 'Viajes',
-          ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(
               Icons.person_outline,
             ),
@@ -325,6 +355,60 @@ Future<void> _completarViaje(
               color: AppTheme.primary,
             ),
             label: 'Perfil',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InicioRemitente extends StatelessWidget {
+  const _InicioRemitente();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          const ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(
+              Icons.inventory_2_outlined,
+              color: AppTheme.primary,
+              size: 32,
+            ),
+            title: Text(
+              'Lapticon',
+              style: TextStyle(
+                color: AppTheme.primary,
+                fontSize: 23,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            subtitle: Text('Modo remitente'),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Hola, remitente',
+            style: TextStyle(
+              color: AppTheme.textPrimary,
+              fontSize: 27,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppTheme.primary,
+              borderRadius: BorderRadius.circular(23),
+            ),
+            child: const Text(
+              'Las funciones para publicar y seguir encomiendas '
+              'aún no están disponibles.',
+              style: TextStyle(color: Colors.white, fontSize: 16, height: 1.4),
+            ),
           ),
         ],
       ),

@@ -23,6 +23,8 @@ void main() {
 
         expect(boton, findsOneWidget);
 
+        await tester.ensureVisible(boton);
+        await tester.pumpAndSettle();
         await tester.tap(boton);
         await tester.pump();
 
