@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'controllers/auth_controller.dart';
 import 'theme/app_theme.dart';
 import 'views/login_view.dart';
-import 'views/seleccion_modo_view.dart';
+import 'views/main_navigation_view.dart';
 
 void main() {
   runApp(const LapticonApp());
@@ -44,7 +44,7 @@ class _LapticonAppState extends State<LapticonApp> {
         listenable: _authController,
         builder: (context, _) {
           if (_authController.haySesion) {
-            return SeleccionModoView(
+            return MainNavigationView(
               authController: _authController,
             );
           }

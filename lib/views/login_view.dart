@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../controllers/auth_controller.dart';
 import '../theme/app_theme.dart';
 import 'registro_view.dart';
+import 'widgets/campos_formulario.dart';
+import 'widgets/marco_autenticacion.dart';
 
 /// Pantalla de inicio de sesión.
 ///
@@ -88,200 +90,91 @@ class _LoginViewState extends State<LoginView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        // El ListenableBuilder vuelve a construir el formulario cada vez que el
-        // controlador notifica un cambio, por ejemplo al activar la carga.
-        child: ListenableBuilder(
-          listenable: _auth,
-          builder: (context, _) {
-            final cargando = _auth.cargando;
+    return MarcoAutenticacion(
+      titulo: 'Iniciar sesión',
+      subtitulo: 'Accede a tu cuenta para continuar',
+      child: ListenableBuilder(
+        listenable: _auth,
+        builder: (context, _) {
+          final cargando = _auth.cargando;
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(
-                24,
-                30,
-                24,
-                30,
-              ),
-              child: Form(
-                key: _formKey,
-                autovalidateMode:
-                    AutovalidateMode.onUserInteraction,
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.stretch,
+          return Form(
+            key: _formKey,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                CampoTexto(
+                  etiqueta: 'Correo electrónico',
+                  controller: _emailController,
+                  hintText: 'correo@ejemplo.com',
+                  icono: Icons.email_outlined,
+                  keyboardType: TextInputType.emailAddress,
+                  validator: _auth.validarCorreo,
+                ),
+                const SizedBox(height: 23),
+                CampoTexto(
+                  etiqueta: 'Contraseña',
+                  controller: _passwordController,
+                  hintText: 'Tu contraseña',
+                  icono: Icons.lock_outline,
+                  obscureText: _ocultarPassword,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) {
+                    if (!cargando) {
+                      _iniciarSesion();
+                    }
+                  },
+                  suffixIcon: IconButton(
+                    tooltip: _ocultarPassword
+                        ? 'Mostrar contraseña'
+                        : 'Ocultar contraseña',
+                    onPressed: () {
+                      setState(() {
+                        _ocultarPassword = !_ocultarPassword;
+                      });
+                    },
+                    icon: Icon(
+                      _ocultarPassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                    ),
+                  ),
+                  validator: _auth.validarPassword,
+                ),
+                const SizedBox(height: 40),
+                FilledButton(
+                  onPressed: cargando ? null : _iniciarSesion,
+                  child: cargando
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Iniciar sesión'),
+                ),
+                const SizedBox(height: 36),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    const SizedBox(height: 30),
-
-                    // Encabezado con el logotipo de la aplicación.
-                    Center(
-                      child: Container(
-                        width: 76,
-                        height: 76,
-                        decoration: BoxDecoration(
-                          color: AppTheme.primary,
-                          borderRadius:
-                              BorderRadius.circular(22),
-                        ),
-                        child: const Icon(
-                          Icons.flight_rounded,
-                          color: Colors.white,
-                          size: 38,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
                     const Text(
-                      'Iniciar sesión',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textPrimary,
-                      ),
+                      '¿No tienes cuenta?',
+                      style: TextStyle(color: AppTheme.textSecondary),
                     ),
-
-                    const SizedBox(height: 8),
-
-                    const Text(
-                      'Ingresa a Lapticon para gestionar tus viajes.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: AppTheme.textSecondary,
-                        fontSize: 15,
-                        height: 1.4,
-                      ),
-                    ),
-
-                    const SizedBox(height: 38),
-
-                    // Campo de correo. La regla de formato vive en el
-                    // controlador para que login y registro usen la misma.
-                    const Text(
-                      'Correo electrónico',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType:
-                          TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        hintText: 'correo@ejemplo.com',
-                        prefixIcon: Icon(
-                          Icons.email_outlined,
-                        ),
-                      ),
-                      validator: _auth.validarCorreo,
-                    ),
-
-                    const SizedBox(height: 22),
-
-                    // Campo de contraseña. Al iniciar sesión basta con que no
-                    // esté vacía: la longitud la verifica Firebase.
-                    const Text(
-                      'Contraseña',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _ocultarPassword,
-                      textInputAction: TextInputAction.done,
-                      onFieldSubmitted: (_) {
-                        if (!cargando) {
-                          _iniciarSesion();
-                        }
-                      },
-                      decoration: InputDecoration(
-                        hintText: 'Tu contraseña',
-                        prefixIcon: const Icon(
-                          Icons.lock_outline,
-                        ),
-                        suffixIcon: IconButton(
-                          onPressed: () {
-                            setState(() {
-                              _ocultarPassword =
-                                  !_ocultarPassword;
-                            });
-                          },
-                          icon: Icon(
-                            _ocultarPassword
-                                ? Icons.visibility_outlined
-                                : Icons
-                                      .visibility_off_outlined,
-                          ),
-                        ),
-                      ),
-                      validator: _auth.validarPassword,
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // Durante la carga el botón se deshabilita y muestra el
-                    // indicador de progreso.
-                    FilledButton(
-                      onPressed:
-                          cargando ? null : _iniciarSesion,
-                      child: cargando
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child:
-                                  CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    color: Colors.white,
-                                  ),
-                            )
-                          : const Text(
-                              'Iniciar sesión',
-                            ),
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    // Acceso a la pantalla de registro.
-                    Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          '¿No tienes cuenta?',
-                          style: TextStyle(
-                            color: AppTheme.textSecondary,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: cargando
-                              ? null
-                              : _irARegistro,
-                          child: const Text(
-                            'Crear cuenta',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
+                    TextButton(
+                      onPressed: cargando ? null : _irARegistro,
+                      child: const Text('Regístrate'),
                     ),
                   ],
                 ),
-              ),
-            );
-          },
-        ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

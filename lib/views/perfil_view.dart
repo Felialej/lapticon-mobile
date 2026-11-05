@@ -16,6 +16,7 @@ class PerfilView extends StatelessWidget {
     super.key,
     required this.authController,
     required this.perfilController,
+    required this.onCambiarFuncion,
   });
 
   /// Controlador compartido que gestiona la sesión.
@@ -23,6 +24,7 @@ class PerfilView extends StatelessWidget {
 
   /// Controlador que consulta y actualiza los datos personales.
   final PerfilController perfilController;
+  final VoidCallback onCambiarFuncion;
 
   /// Abre la pantalla de edición y avisa del resultado al volver.
   Future<void> _editarPerfil(
@@ -125,6 +127,16 @@ class PerfilView extends StatelessWidget {
                 _contenido(context),
 
                 const SizedBox(height: 26),
+
+                OutlinedButton.icon(
+                  onPressed: onCambiarFuncion,
+                  icon: const Icon(Icons.swap_horiz),
+                  label: const Text('Cambiar función'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                  ),
+                ),
+                const SizedBox(height: 12),
 
                 // Al cerrar sesión el controlador descarta el usuario y la
                 // raíz de la aplicación vuelve al inicio de sesión.
