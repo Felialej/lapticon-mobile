@@ -1,70 +1,41 @@
 import 'package:flutter/material.dart';
 
+import '../models/modo_usuario.dart';
 import '../theme/app_theme.dart';
-import 'widgets/marco_autenticacion.dart';
 
-enum Funcion { viajero, remitente }
-
-class SelectorFuncionView extends StatelessWidget {
-  const SelectorFuncionView({
+/// Opciones de función accesibles mediante toque o teclado.
+class OpcionesFuncion extends StatelessWidget {
+  const OpcionesFuncion({
     super.key,
-    required this.funcion,
+    required this.modoSeleccionado,
     required this.onSeleccionar,
-    required this.onContinuar,
   });
 
-  final Funcion funcion;
-  final ValueChanged<Funcion> onSeleccionar;
-  final VoidCallback onContinuar;
+  final ModoUsuario? modoSeleccionado;
+  final ValueChanged<ModoUsuario> onSeleccionar;
 
   @override
   Widget build(BuildContext context) {
-    return MarcoAutenticacion(
-      titulo: '¿Cómo usarás Lapticon?',
-      subtitulo: 'Selecciona qué quieres hacer hoy.',
-      separacionTarjeta: 11,
-      nota: 'Selecciona un modo para ver sus funciones.',
-      child: RadioGroup<Funcion>(
-        groupValue: funcion,
-        onChanged: (valor) {
-          if (valor != null) onSeleccionar(valor);
-        },
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _opcion(
-              Funcion.remitente,
-              Icons.inventory_2_outlined,
-              'Remitente',
-              'Publicación y seguimiento de encomiendas próximamente.',
-            ),
-            const SizedBox(height: 14),
-            _opcion(
-              Funcion.viajero,
-              Icons.send_outlined,
-              'Viajero',
-              'Registra vuelos y consulta tus viajes.',
-            ),
-            const SizedBox(height: 22),
-            FilledButton(
-              onPressed: onContinuar,
-              child: const Text('Continuar'),
-            ),
-          ],
-        ),
+    return RadioGroup<ModoUsuario>(
+      groupValue: modoSeleccionado,
+      onChanged: (valor) {
+        if (valor != null) onSeleccionar(valor);
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _opcion(ModoUsuario.remitente, Icons.inventory_2_outlined),
+          const SizedBox(height: 14),
+          _opcion(ModoUsuario.viajero, Icons.send_outlined),
+        ],
       ),
     );
   }
 
-  Widget _opcion(
-    Funcion valor,
-    IconData icono,
-    String titulo,
-    String descripcion,
-  ) {
-    final seleccionada = valor == funcion;
-    return RadioListTile<Funcion>(
-      value: valor,
+  Widget _opcion(ModoUsuario modo, IconData icono) {
+    final seleccionada = modo == modoSeleccionado;
+    return RadioListTile<ModoUsuario>(
+      value: modo,
       selected: seleccionada,
       activeColor: AppTheme.secondary,
       controlAffinity: ListTileControlAffinity.trailing,
@@ -89,7 +60,7 @@ class SelectorFuncionView extends StatelessWidget {
         child: Icon(icono, color: AppTheme.primary, size: 29),
       ),
       title: Text(
-        titulo,
+        modo.titulo,
         style: const TextStyle(
           color: AppTheme.textPrimary,
           fontSize: 17,
@@ -97,7 +68,7 @@ class SelectorFuncionView extends StatelessWidget {
         ),
       ),
       subtitle: Text(
-        descripcion,
+        modo.descripcion,
         style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12.5),
       ),
     );

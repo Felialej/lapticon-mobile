@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lapticon_mobile/controllers/auth_controller.dart';
 import 'package:lapticon_mobile/main.dart';
+import 'package:lapticon_mobile/models/modo_usuario.dart';
 import 'package:lapticon_mobile/models/perfil_usuario.dart';
 import 'package:lapticon_mobile/utils/validadores.dart';
 import 'package:lapticon_mobile/views/registro_view.dart';
+import 'package:lapticon_mobile/views/seleccion_modo_view.dart';
 
 void main() {
   // Pruebas de interfaz: comprueban que los formularios muestren los errores
@@ -87,6 +89,48 @@ void main() {
         expect(
           find.text('Ingresa tu teléfono'),
           findsOneWidget,
+        );
+      },
+    );
+  });
+
+  group('Pantalla de inicio', () {
+    testWidgets(
+      'Continuar se habilita al elegir un modo',
+      (tester) async {
+        ModoUsuario? modoSeleccionado;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: StatefulBuilder(
+              builder: (context, setState) => SeleccionModoView(
+                modoSeleccionado: modoSeleccionado,
+                onSeleccionar: (modo) => setState(() => modoSeleccionado = modo),
+                onContinuar: () {},
+              ),
+            ),
+          ),
+        );
+
+        expect(find.text('Remitente'), findsOneWidget);
+        expect(find.text('Viajero'), findsOneWidget);
+
+        final boton = find.widgetWithText(FilledButton, 'Continuar');
+
+        // Sin modo marcado el botón está deshabilitado.
+        expect(
+          tester.widget<FilledButton>(boton).onPressed,
+          isNull,
+        );
+
+        final viajero = find.text('Viajero');
+        await tester.ensureVisible(viajero);
+        await tester.pumpAndSettle();
+        await tester.tap(viajero);
+        await tester.pump();
+
+        expect(
+          tester.widget<FilledButton>(boton).onPressed,
+          isNotNull,
         );
       },
     );

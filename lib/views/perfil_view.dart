@@ -60,6 +60,16 @@ class PerfilView extends StatelessWidget {
     );
   }
 
+  /// Cierra la sesión y devuelve la aplicación al inicio de sesión.
+  ///
+  /// Primero se descartan las pantallas abiertas encima de la ruta raíz, que
+  /// es donde vive la vista que decide entre el login y la aplicación. Sin ese
+  /// paso la sesión se cerraría, pero la pantalla visible seguiría siendo esta.
+  void _cerrarSesion(BuildContext context) {
+    Navigator.popUntil(context, (ruta) => ruta.isFirst);
+    authController.cerrarSesion();
+  }
+
   /// Vuelve a consultar el perfil al backend.
   Future<void> _recargar() async {
     final usuario = authController.usuario;
@@ -131,7 +141,7 @@ class PerfilView extends StatelessWidget {
                 // Al cerrar sesión el controlador descarta el usuario y la
                 // raíz de la aplicación vuelve al inicio de sesión.
                 OutlinedButton.icon(
-                  onPressed: authController.cerrarSesion,
+                  onPressed: () => _cerrarSesion(context),
                   icon: const Icon(Icons.logout),
                   label: const Text(
                     'Cerrar sesión',

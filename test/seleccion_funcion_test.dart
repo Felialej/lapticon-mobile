@@ -15,6 +15,8 @@ void main() {
       await _iniciarSesion(tester);
       expect(find.text('¿Cómo usarás Lapticon?'), findsOneWidget);
       expect(find.byType(NavigationBar), findsNothing);
+      final continuar = find.widgetWithText(FilledButton, 'Continuar');
+      expect(tester.widget<FilledButton>(continuar).onPressed, isNull);
 
       await _pulsar(tester, find.text('Remitente'));
       await _pulsar(tester, find.text('Continuar'));
@@ -33,6 +35,7 @@ void main() {
       await _pulsar(tester, find.text('Cambiar función'));
       expect(find.text('¿Cómo usarás Lapticon?'), findsOneWidget);
       expect(find.byType(LoginView), findsNothing);
+      expect(tester.widget<FilledButton>(continuar).onPressed, isNull);
 
       await _pulsar(tester, find.text('Viajero'));
       await _pulsar(tester, find.text('Continuar'));

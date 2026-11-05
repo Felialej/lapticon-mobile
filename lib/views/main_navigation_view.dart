@@ -3,13 +3,14 @@ import 'package:flutter/material.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/perfil_controller.dart';
 import '../controllers/viajes_controller.dart';
+import '../models/modo_usuario.dart';
 import '../models/viaje.dart';
 import '../theme/app_theme.dart';
 import 'home_view.dart';
 import 'mis_viajes_view.dart';
 import 'perfil_view.dart';
 import 'registrar_viaje_view.dart';
-import 'selector_funcion_view.dart';
+import 'seleccion_modo_view.dart';
 
 /// Contenedor de la aplicación una vez iniciada la sesión.
 ///
@@ -32,7 +33,7 @@ class MainNavigationView extends StatefulWidget {
 class _MainNavigationViewState
     extends State<MainNavigationView> {
 
-  Funcion _funcion = Funcion.viajero;
+  ModoUsuario? _modoSeleccionado;
   bool _eligiendoFuncion = true;
   bool _viajesSolicitados = false;
 
@@ -262,7 +263,7 @@ Future<void> _completarViaje(
       _indiceSeleccionado = 0;
     });
 
-    if (_funcion == Funcion.viajero && !_viajesSolicitados) {
+    if (_modoSeleccionado == ModoUsuario.viajero && !_viajesSolicitados) {
       _viajesSolicitados = true;
       _cargarViajes();
     }
@@ -271,14 +272,14 @@ Future<void> _completarViaje(
   @override
   Widget build(BuildContext context) {
     if (_eligiendoFuncion) {
-      return SelectorFuncionView(
-        funcion: _funcion,
-        onSeleccionar: (funcion) => setState(() => _funcion = funcion),
+      return SeleccionModoView(
+        modoSeleccionado: _modoSeleccionado,
+        onSeleccionar: (modo) => setState(() => _modoSeleccionado = modo),
         onContinuar: _continuarConFuncion,
       );
     }
 
-    final esViajero = _funcion == Funcion.viajero;
+    final esViajero = _modoSeleccionado == ModoUsuario.viajero;
 
     return Scaffold(
       // El ListenableBuilder redibuja las pestañas cuando la lista de viajes
@@ -308,6 +309,7 @@ Future<void> _completarViaje(
                 authController: widget.authController,
                 perfilController: _perfilController,
                 onCambiarFuncion: () => setState(() {
+                  _modoSeleccionado = null;
                   _eligiendoFuncion = true;
                 }),
               ),
