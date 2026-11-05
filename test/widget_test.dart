@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lapticon_mobile/controllers/auth_controller.dart';
 import 'package:lapticon_mobile/main.dart';
+import 'package:lapticon_mobile/models/modo_usuario.dart';
 import 'package:lapticon_mobile/models/perfil_usuario.dart';
 import 'package:lapticon_mobile/utils/validadores.dart';
 import 'package:lapticon_mobile/views/registro_view.dart';
@@ -24,6 +25,8 @@ void main() {
 
         expect(boton, findsOneWidget);
 
+        await tester.ensureVisible(boton);
+        await tester.pumpAndSettle();
         await tester.tap(boton);
         await tester.pump();
 
@@ -95,10 +98,15 @@ void main() {
     testWidgets(
       'Continuar se habilita al elegir un modo',
       (tester) async {
+        ModoUsuario? modoSeleccionado;
         await tester.pumpWidget(
           MaterialApp(
-            home: SeleccionModoView(
-              authController: AuthController(),
+            home: StatefulBuilder(
+              builder: (context, setState) => SeleccionModoView(
+                modoSeleccionado: modoSeleccionado,
+                onSeleccionar: (modo) => setState(() => modoSeleccionado = modo),
+                onContinuar: () {},
+              ),
             ),
           ),
         );
@@ -114,7 +122,10 @@ void main() {
           isNull,
         );
 
-        await tester.tap(find.text('Viajero'));
+        final viajero = find.text('Viajero');
+        await tester.ensureVisible(viajero);
+        await tester.pumpAndSettle();
+        await tester.tap(viajero);
         await tester.pump();
 
         expect(

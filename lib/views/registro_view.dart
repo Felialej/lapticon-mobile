@@ -4,6 +4,7 @@ import '../controllers/auth_controller.dart';
 import '../theme/app_theme.dart';
 import '../utils/validadores.dart';
 import 'widgets/campos_formulario.dart';
+import 'widgets/marco_autenticacion.dart';
 
 /// Pantalla de creación de cuenta.
 ///
@@ -181,246 +182,147 @@ class _RegistroViewState extends State<RegistroView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        // El ListenableBuilder vuelve a construir el formulario cada vez que el
-        // controlador notifica un cambio, por ejemplo al activar la carga.
-        child: ListenableBuilder(
-          listenable: _auth,
-          builder: (context, _) {
-            final cargando = _auth.cargando;
+    return MarcoAutenticacion(
+      titulo: 'Crear cuenta',
+      subtitulo: 'Regístrate para empezar a conectar',
+      separacionTarjeta: 13,
+      child: ListenableBuilder(
+        listenable: _auth,
+        builder: (context, _) {
+          final cargando = _auth.cargando;
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(
-                24,
-                30,
-                24,
-                30,
-              ),
-              child: Form(
-                key: _formKey,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+          return Form(
+            key: _formKey,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const _TituloSeccion(titulo: 'Datos personales'),
+                const SizedBox(height: 14),
+                CampoTexto(
+                  etiqueta: 'Nombre',
+                  controller: _nombreController,
+                  hintText: 'Ejemplo: Ana',
+                  icono: Icons.person_outline,
+                  textCapitalization: TextCapitalization.words,
+                  validator: (valor) =>
+                      validarTextoObligatorio(valor, 'nombre'),
+                ),
+                const SizedBox(height: 18),
+                CampoTexto(
+                  etiqueta: 'Apellido',
+                  controller: _apellidoController,
+                  hintText: 'Ejemplo: Gómez',
+                  icono: Icons.badge_outlined,
+                  textCapitalization: TextCapitalization.words,
+                  validator: (valor) =>
+                      validarTextoObligatorio(valor, 'apellido'),
+                ),
+                const SizedBox(height: 18),
+                CampoTexto(
+                  etiqueta: 'Teléfono',
+                  controller: _telefonoController,
+                  hintText: 'Ejemplo: 3001234567',
+                  icono: Icons.phone_outlined,
+                  keyboardType: TextInputType.phone,
+                  validator: validarTelefono,
+                ),
+                const SizedBox(height: 18),
+                SelectorFecha(
+                  etiqueta: 'Fecha de nacimiento',
+                  fecha: _fechaNacimiento,
+                  onTap: _seleccionarFechaNacimiento,
+                  textoVacio: 'AAAA/MM/DD',
+                  icono: Icons.cake_outlined,
+                  usarTemaDeEntrada: true,
+                ),
+                const SizedBox(height: 18),
+                CampoTexto(
+                  etiqueta: 'Nacionalidad',
+                  controller: _nacionalidadController,
+                  hintText: 'Ejemplo: Colombia',
+                  icono: Icons.public_outlined,
+                  textCapitalization: TextCapitalization.words,
+                  validator: (valor) =>
+                      validarTextoObligatorio(valor, 'nacionalidad'),
+                ),
+                const SizedBox(height: 28),
+                const _TituloSeccion(titulo: 'Datos de acceso'),
+                const SizedBox(height: 14),
+                CampoTexto(
+                  etiqueta: 'Correo electrónico',
+                  controller: _emailController,
+                  hintText: 'correo@ejemplo.com',
+                  icono: Icons.email_outlined,
+                  keyboardType: TextInputType.emailAddress,
+                  validator: _auth.validarCorreo,
+                ),
+                const SizedBox(height: 18),
+                CampoTexto(
+                  etiqueta: 'Contraseña',
+                  controller: _passwordController,
+                  hintText:
+                      'Mínimo ${AuthController.minimoCaracteresPassword} caracteres',
+                  icono: Icons.lock_outline,
+                  obscureText: _ocultarPassword,
+                  textInputAction: TextInputAction.done,
+                  suffixIcon: IconButton(
+                    tooltip: _ocultarPassword
+                        ? 'Mostrar contraseña'
+                        : 'Ocultar contraseña',
+                    onPressed: () {
+                      setState(() {
+                        _ocultarPassword = !_ocultarPassword;
+                      });
+                    },
+                    icon: Icon(
+                      _ocultarPassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                    ),
+                  ),
+                  validator: (valor) =>
+                      _auth.validarPassword(valor, exigirLongitudMinima: true),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Usa una contraseña de al menos '
+                  '${AuthController.minimoCaracteresPassword} caracteres.',
+                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                ),
+                const SizedBox(height: 26),
+                FilledButton(
+                  onPressed: cargando ? null : _registrar,
+                  child: cargando
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Crear cuenta'),
+                ),
+                const SizedBox(height: 20),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    const SizedBox(height: 20),
-
-                    // Encabezado con el logotipo de la aplicación.
-                    Center(
-                      child: Container(
-                        width: 76,
-                        height: 76,
-                        decoration: BoxDecoration(
-                          color: AppTheme.primary,
-                          borderRadius: BorderRadius.circular(22),
-                        ),
-                        child: const Icon(
-                          Icons.flight_rounded,
-                          color: Colors.white,
-                          size: 38,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
                     const Text(
-                      'Crear cuenta',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textPrimary,
-                      ),
+                      '¿Ya tienes una cuenta?',
+                      style: TextStyle(color: AppTheme.textSecondary),
                     ),
-
-                    const SizedBox(height: 8),
-
-                    const Text(
-                      'Regístrate en Lapticon para comenzar a gestionar tus viajes.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: AppTheme.textSecondary,
-                        fontSize: 15,
-                        height: 1.4,
-                      ),
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // Datos personales que se guardan en el backend.
-                    const _TituloSeccion(
-                      titulo: 'Datos personales',
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    CampoTexto(
-                      etiqueta: 'Nombre',
-                      controller: _nombreController,
-                      hintText: 'Ejemplo: Ana',
-                      icono: Icons.person_outline,
-                      textCapitalization: TextCapitalization.words,
-                      validator: (valor) =>
-                          validarTextoObligatorio(valor, 'nombre'),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    CampoTexto(
-                      etiqueta: 'Apellido',
-                      controller: _apellidoController,
-                      hintText: 'Ejemplo: Gómez',
-                      icono: Icons.badge_outlined,
-                      textCapitalization: TextCapitalization.words,
-                      validator: (valor) =>
-                          validarTextoObligatorio(valor, 'apellido'),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    CampoTexto(
-                      etiqueta: 'Teléfono',
-                      controller: _telefonoController,
-                      hintText: 'Ejemplo: 3001234567',
-                      icono: Icons.phone_outlined,
-                      keyboardType: TextInputType.phone,
-                      validator: validarTelefono,
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    SelectorFecha(
-                      etiqueta: 'Fecha de nacimiento',
-                      fecha: _fechaNacimiento,
-                      onTap: _seleccionarFechaNacimiento,
-                      textoVacio: 'AAAA/MM/DD',
-                      icono: Icons.cake_outlined,
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    CampoTexto(
-                      etiqueta: 'Nacionalidad',
-                      controller: _nacionalidadController,
-                      hintText: 'Ejemplo: Colombia',
-                      icono: Icons.public_outlined,
-                      textCapitalization: TextCapitalization.words,
-                      validator: (valor) =>
-                          validarTextoObligatorio(valor, 'nacionalidad'),
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // Credenciales con las que se inicia sesión.
-                    const _TituloSeccion(
-                      titulo: 'Datos de acceso',
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    CampoTexto(
-                      etiqueta: 'Correo electrónico',
-                      controller: _emailController,
-                      hintText: 'correo@ejemplo.com',
-                      icono: Icons.email_outlined,
-                      keyboardType: TextInputType.emailAddress,
-                      validator: _auth.validarCorreo,
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // La contraseña no usa CampoTexto porque necesita el botón
-                    // que alterna entre mostrarla y ocultarla.
-                    const Text(
-                      'Contraseña',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _ocultarPassword,
-                      textInputAction: TextInputAction.done,
-                      decoration: InputDecoration(
-                        hintText:
-                            'Mínimo '
-                            '${AuthController.minimoCaracteresPassword}'
-                            ' caracteres',
-                        prefixIcon: const Icon(
-                          Icons.lock_outline,
-                        ),
-                        suffixIcon: IconButton(
-                          onPressed: () {
-                            setState(() {
-                              _ocultarPassword = !_ocultarPassword;
-                            });
-                          },
-                          icon: Icon(
-                            _ocultarPassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                          ),
-                        ),
-                      ),
-                      validator: (valor) => _auth.validarPassword(
-                        valor,
-                        exigirLongitudMinima: true,
-                      ),
-                    ),
-
-                    const SizedBox(height: 28),
-
-                    // Durante la carga el botón se deshabilita y muestra el
-                    // indicador de progreso.
-                    FilledButton(
-                      onPressed: cargando ? null : _registrar,
-                      child: cargando
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text(
-                              'Crear cuenta',
-                            ),
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    // Regreso al inicio de sesión.
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          '¿Ya tienes cuenta?',
-                          style: TextStyle(
-                            color: AppTheme.textSecondary,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: cargando ? null : _irALogin,
-                          child: const Text(
-                            'Iniciar sesión',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
+                    TextButton(
+                      onPressed: cargando ? null : _irALogin,
+                      child: const Text('Iniciar sesión'),
                     ),
                   ],
                 ),
-              ),
-            );
-          },
-        ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -428,34 +330,19 @@ class _RegistroViewState extends State<RegistroView> {
 
 /// Título que separa los bloques del formulario.
 class _TituloSeccion extends StatelessWidget {
-  const _TituloSeccion({
-    required this.titulo,
-  });
+  const _TituloSeccion({required this.titulo});
 
   final String titulo;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 4,
-          height: 18,
-          decoration: BoxDecoration(
-            color: AppTheme.secondary,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          titulo,
-          style: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.textPrimary,
-          ),
-        ),
-      ],
+    return Text(
+      titulo,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: AppTheme.textPrimary,
+      ),
     );
   }
 }

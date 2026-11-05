@@ -7,6 +7,61 @@ class AppTheme {
   static const Color textPrimary = Color(0xFF182230);
   static const Color textSecondary = Color(0xFF667085);
 
+  static ThemeData paraAutenticacion(ThemeData tema) {
+    const borde = OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(12)),
+      borderSide: BorderSide(color: Color(0xFFD0D5DD)),
+    );
+
+    return tema.copyWith(
+      textTheme: tema.textTheme.copyWith(
+        bodyLarge: const TextStyle(fontSize: 14, color: textPrimary),
+        bodyMedium: const TextStyle(
+          fontSize: 13.5,
+          height: 1.4,
+          color: Color(0xFF344054),
+        ),
+      ),
+      inputDecorationTheme: const InputDecorationThemeData(
+        filled: true,
+        fillColor: Color(0xFFF9FAFB),
+        hintStyle: TextStyle(color: Color(0xFF98A2B3)),
+        prefixIconColor: textSecondary,
+        suffixIconColor: textSecondary,
+        constraints: BoxConstraints(minHeight: 54),
+        contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        errorMaxLines: 3,
+        border: borde,
+        enabledBorder: borde,
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+          borderSide: BorderSide(color: secondary, width: 1.8),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: primary,
+          foregroundColor: Colors.white,
+          minimumSize: const Size.fromHeight(55),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(13),
+          ),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: secondary,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          textStyle: const TextStyle(
+            fontSize: 13.2,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
   static ThemeData get lightTheme {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: primary,

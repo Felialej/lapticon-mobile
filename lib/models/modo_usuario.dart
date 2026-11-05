@@ -6,17 +6,14 @@
 enum ModoUsuario {
   remitente(
     titulo: 'Remitente',
-    descripcion: 'Publica y sigue tus encomiendas.',
+    descripcion: 'Publicación y seguimiento de encomiendas próximamente.',
   ),
   viajero(
     titulo: 'Viajero',
-    descripcion: 'Registra vuelos y lleva encomiendas.',
+    descripcion: 'Registra vuelos y consulta tus viajes.',
   );
 
-  const ModoUsuario({
-    required this.titulo,
-    required this.descripcion,
-  });
+  const ModoUsuario({required this.titulo, required this.descripcion});
 
   /// Nombre del modo, tal como se muestra en la pantalla de inicio.
   final String titulo;
