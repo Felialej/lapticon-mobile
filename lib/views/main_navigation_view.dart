@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../controllers/auth_controller.dart';
+import '../controllers/encomiendas_controller.dart';
 import '../controllers/perfil_controller.dart';
 import '../controllers/viajes_controller.dart';
 import '../models/encomienda.dart';
@@ -9,10 +10,12 @@ import '../models/viaje.dart';
 import '../theme/app_theme.dart';
 import 'home_view.dart';
 import 'inicio_remitente_view.dart';
+import 'mis_encomiendas_view.dart';
 import 'mis_viajes_view.dart';
 import 'perfil_view.dart';
 import 'registrar_encomienda_view.dart';
 import 'registrar_viaje_view.dart';
+import 'seguimiento_encomienda_view.dart';
 import 'seleccion_modo_view.dart';
 
 /// Contenedor de la aplicación una vez iniciada la sesión.
@@ -39,6 +42,7 @@ class _MainNavigationViewState
   ModoUsuario? _modoSeleccionado;
   bool _eligiendoFuncion = true;
   bool _viajesSolicitados = false;
+  bool _encomiendasSolicitadas = false;
 
   /// Pestaña visible actualmente.
   int _indiceSeleccionado = 0;
@@ -46,6 +50,10 @@ class _MainNavigationViewState
   /// Controlador de viajes.
   final ViajesController _viajesController =
       ViajesController();
+
+  /// Controlador de las encomiendas publicadas como remitente.
+  final EncomiendasController _encomiendasController =
+      EncomiendasController();
 
   /// Controlador del perfil. Se crea en este nivel para que la pestaña de
   /// perfil conserve los datos al cambiar de pestaña.
@@ -61,8 +69,21 @@ class _MainNavigationViewState
   @override
   void dispose() {
     _viajesController.dispose();
+    _encomiendasController.dispose();
     _perfilController.dispose();
     super.dispose();
+  }
+
+  Future<void> _cargarEncomiendas() async {
+    final usuario = widget.authController.usuario;
+
+    if (usuario == null) {
+      return;
+    }
+
+    await _encomiendasController.cargarEncomiendas(
+      idToken: usuario.idToken,
+    );
   }
 
   Future<void> _cargarViajes() async {
@@ -279,9 +300,30 @@ Future<void> _completarViaje(
       return;
     }
 
+    _encomiendasController.agregar(nuevaEncomienda);
+
     _mostrarAviso(
       'Encomienda publicada correctamente',
     );
+  }
+
+  /// Abre el detalle de seguimiento, que el remitente solo consulta.
+  void _verSeguimiento(Encomienda encomienda) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SeguimientoEncomiendaView(
+          encomienda: encomienda,
+        ),
+      ),
+    );
+  }
+
+  /// Cambia a la pestaña de encomiendas.
+  void _irAEncomiendas() {
+    setState(() {
+      _indiceSeleccionado = 1;
+    });
   }
 
   void _mostrarAviso(String mensaje) {
@@ -310,6 +352,12 @@ Future<void> _completarViaje(
       _viajesSolicitados = true;
       _cargarViajes();
     }
+
+    if (_modoSeleccionado == ModoUsuario.remitente &&
+        !_encomiendasSolicitadas) {
+      _encomiendasSolicitadas = true;
+      _cargarEncomiendas();
+    }
   }
 
   @override
@@ -328,7 +376,10 @@ Future<void> _completarViaje(
       // El ListenableBuilder redibuja las pestañas cuando la lista de viajes
       // cambia, de modo que el contador de inicio y el listado quedan al día.
       body: ListenableBuilder(
-        listenable: _viajesController,
+        listenable: Listenable.merge([
+          _viajesController,
+          _encomiendasController,
+        ]),
         builder: (context, _) {
           // IndexedStack conserva el estado de cada pestaña al cambiar entre
           // ellas, en lugar de reconstruirlas desde cero.
@@ -346,16 +397,24 @@ Future<void> _completarViaje(
                   onRegistrarViaje: _registrarViaje,
                   onCompletarViaje: _completarViaje,
                 ),
-              ] else
+              ] else ...[
                 InicioRemitenteView(
                   onPublicarEncomienda: _publicarEncomienda,
-                  onVerEncomiendas: () => _mostrarAviso(
-                    'Mis encomiendas estará disponible próximamente.',
-                  ),
+                  onVerEncomiendas: _irAEncomiendas,
                   onBuscarViajeros: () => _mostrarAviso(
                     'La búsqueda de viajeros estará disponible próximamente.',
                   ),
                 ),
+                MisEncomiendasView(
+                  encomiendas:
+                      _encomiendasController.encomiendas,
+                  cargando: _encomiendasController.cargando,
+                  error: _encomiendasController.error,
+                  onPublicarEncomienda: _publicarEncomienda,
+                  onVerSeguimiento: _verSeguimiento,
+                  onRecargar: _cargarEncomiendas,
+                ),
+              ],
               PerfilView(
                 authController: widget.authController,
                 perfilController: _perfilController,
@@ -398,6 +457,15 @@ Future<void> _completarViaje(
                 color: AppTheme.primary,
               ),
               label: 'Viajes',
+            )
+          else
+            const NavigationDestination(
+              icon: Icon(Icons.inventory_2_outlined),
+              selectedIcon: Icon(
+                Icons.inventory_2_rounded,
+                color: AppTheme.primary,
+              ),
+              label: 'Envíos',
             ),
           const NavigationDestination(
             icon: Icon(

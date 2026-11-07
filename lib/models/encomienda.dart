@@ -1,3 +1,54 @@
+enum EstadoEncomienda {
+  disponible(
+    valor: 'disponible',
+    etiqueta: 'Disponible',
+    descripcion: 'Publicada por el remitente.',
+    paso: 0,
+  ),
+  tomada(
+    valor: 'tomada',
+    etiqueta: 'Tomada',
+    descripcion: 'Asignada a un viajero.',
+    paso: 1,
+  ),
+  recibida(
+    valor: 'recibida',
+    etiqueta: 'Recibida',
+    descripcion: 'Confirmada por el viajero.',
+    paso: 2,
+  ),
+  vencida(
+    valor: 'vencida',
+    etiqueta: 'Vencida',
+    descripcion: 'Ningún viajero la tomó a tiempo.',
+    paso: 0,
+  );
+
+  const EstadoEncomienda({
+    required this.valor,
+    required this.etiqueta,
+    required this.descripcion,
+    required this.paso,
+  });
+
+  static EstadoEncomienda desdeTexto(String texto) {
+    final normalizado = texto.trim().toLowerCase();
+
+    for (final estado in EstadoEncomienda.values) {
+      if (estado.valor == normalizado) {
+        return estado;
+      }
+    }
+
+    return EstadoEncomienda.disponible;
+  }
+
+  final String valor;
+  final String etiqueta;
+  final String descripcion;
+  final int paso;
+}
+
 class Encomienda {
   const Encomienda({
     required this.ciudadOrigen,
@@ -6,7 +57,7 @@ class Encomienda {
     required this.moneda,
     required this.valor,
     this.id,
-    this.estado = estadoDisponible,
+    this.estado = EstadoEncomienda.disponible,
   });
 
   factory Encomienda.desdeJson(Map<String, dynamic> json) {
@@ -17,14 +68,11 @@ class Encomienda {
       observaciones: json['observaciones']?.toString() ?? '',
       moneda: json['moneda']?.toString() ?? '',
       valor: double.tryParse(json['valor']?.toString() ?? '') ?? 0,
-      estado: json['estado']?.toString() ?? estadoDisponible,
+      estado: EstadoEncomienda.desdeTexto(
+        json['estado']?.toString() ?? '',
+      ),
     );
   }
-
-  static const String estadoDisponible = 'disponible';
-  static const String estadoTomada = 'tomada';
-  static const String estadoVencida = 'vencida';
-  static const String estadoRecibida = 'recibida';
 
   final String? id;
   final String ciudadOrigen;
@@ -32,7 +80,15 @@ class Encomienda {
   final String observaciones;
   final String moneda;
   final double valor;
-  final String estado;
+  final EstadoEncomienda estado;
+
+  String get ruta => '$ciudadOrigen → $ciudadDestino';
+
+  String get valorConMoneda {
+    final entero = valor == valor.roundToDouble();
+
+    return '$moneda ${entero ? valor.toStringAsFixed(0) : valor.toStringAsFixed(2)}';
+  }
 
   Map<String, dynamic> toJson() {
     return {
