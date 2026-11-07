@@ -6,7 +6,7 @@
 enum ModoUsuario {
   remitente(
     titulo: 'Remitente',
-    descripcion: 'Publicación y seguimiento de encomiendas próximamente.',
+    descripcion: 'Publica encomiendas con su origen, destino y valor.',
   ),
   viajero(
     titulo: 'Viajero',

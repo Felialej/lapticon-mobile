@@ -3,12 +3,15 @@ import 'package:flutter/material.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/perfil_controller.dart';
 import '../controllers/viajes_controller.dart';
+import '../models/encomienda.dart';
 import '../models/modo_usuario.dart';
 import '../models/viaje.dart';
 import '../theme/app_theme.dart';
 import 'home_view.dart';
+import 'inicio_remitente_view.dart';
 import 'mis_viajes_view.dart';
 import 'perfil_view.dart';
+import 'registrar_encomienda_view.dart';
 import 'registrar_viaje_view.dart';
 import 'seleccion_modo_view.dart';
 
@@ -250,6 +253,46 @@ Future<void> _completarViaje(
   );
 }
 
+  /// Abre el formulario de encomienda y avisa del resultado del registro.
+  Future<void> _publicarEncomienda() async {
+    final usuario = widget.authController.usuario;
+
+    if (usuario == null) {
+      _mostrarAviso(
+        'Debes iniciar sesión para publicar una encomienda.',
+      );
+
+      return;
+    }
+
+    final nuevaEncomienda =
+        await Navigator.push<Encomienda>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RegistrarEncomiendaView(
+          idToken: usuario.idToken,
+        ),
+      ),
+    );
+
+    if (nuevaEncomienda == null || !mounted) {
+      return;
+    }
+
+    _mostrarAviso(
+      'Encomienda publicada correctamente',
+    );
+  }
+
+  void _mostrarAviso(String mensaje) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensaje),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   /// Cambia a la pestaña de viajes.
   void _irAViajes() {
     setState(() {
@@ -304,7 +347,15 @@ Future<void> _completarViaje(
                   onCompletarViaje: _completarViaje,
                 ),
               ] else
-                const _InicioRemitente(),
+                InicioRemitenteView(
+                  onPublicarEncomienda: _publicarEncomienda,
+                  onVerEncomiendas: () => _mostrarAviso(
+                    'Mis encomiendas estará disponible próximamente.',
+                  ),
+                  onBuscarViajeros: () => _mostrarAviso(
+                    'La búsqueda de viajeros estará disponible próximamente.',
+                  ),
+                ),
               PerfilView(
                 authController: widget.authController,
                 perfilController: _perfilController,
@@ -357,60 +408,6 @@ Future<void> _completarViaje(
               color: AppTheme.primary,
             ),
             label: 'Perfil',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InicioRemitente extends StatelessWidget {
-  const _InicioRemitente();
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          const ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(
-              Icons.inventory_2_outlined,
-              color: AppTheme.primary,
-              size: 32,
-            ),
-            title: Text(
-              'Lapticon',
-              style: TextStyle(
-                color: AppTheme.primary,
-                fontSize: 23,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            subtitle: Text('Modo remitente'),
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'Hola, remitente',
-            style: TextStyle(
-              color: AppTheme.textPrimary,
-              fontSize: 27,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: AppTheme.primary,
-              borderRadius: BorderRadius.circular(23),
-            ),
-            child: const Text(
-              'Las funciones para publicar y seguir encomiendas '
-              'aún no están disponibles.',
-              style: TextStyle(color: Colors.white, fontSize: 16, height: 1.4),
-            ),
           ),
         ],
       ),
