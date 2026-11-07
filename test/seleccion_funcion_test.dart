@@ -21,11 +21,10 @@ void main() {
       await _pulsar(tester, find.text('Remitente'));
       await _pulsar(tester, find.text('Continuar'));
       expect(find.text('Hola, remitente'), findsOneWidget);
-      expect(find.textContaining('aún no están disponibles'), findsOneWidget);
+      expect(find.text('Publicar encomienda'), findsOneWidget);
       expect(find.text('Viajes'), findsNothing);
       expect(find.byType(HomeView), findsNothing);
       expect(find.byType(MisViajesView), findsNothing);
-      expect(find.text('Publicar encomienda'), findsNothing);
 
       await _pulsar(tester, find.text('Perfil'));
       expect(find.byType(PerfilView).hitTestable(), findsOneWidget);
