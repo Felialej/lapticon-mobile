@@ -101,7 +101,7 @@ void main() {
       if (solicitud.url.path == '/api/viajes/disponibles') {
         return http.Response('[]', 200);
       }
-      throw StateError('Ruta inesperada: ' + solicitud.url.path);
+      throw StateError('Ruta inesperada: ${solicitud.url.path}');
     }));
   });
 }

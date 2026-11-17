@@ -304,7 +304,7 @@ Future<void> cambiarEstadoViaje({
     required String ciudadDestino,
   }) async {
     final uri = Uri.parse(
-      ApiConfig.backendUrl + '/api/viajes/disponibles',
+      '${ApiConfig.backendUrl}/api/viajes/disponibles',
     ).replace(queryParameters: {
       'ciudadOrigen': ciudadOrigen,
       'ciudadDestino': ciudadDestino,

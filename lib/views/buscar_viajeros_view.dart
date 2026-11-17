@@ -139,8 +139,7 @@ class _BuscarViajerosViewState extends State<BuscarViajerosView> {
                       )
                     else ...[
                       Text(
-                        'Viajeros encontrados: ' +
-                            _controller.resultados.length.toString(),
+                        'Viajeros encontrados: ${_controller.resultados.length}',
                         style: const TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.bold,
@@ -232,24 +231,22 @@ class _BuscarViajerosViewState extends State<BuscarViajerosView> {
           ),
           const SizedBox(height: 10),
           Text(
-            resultado.viaje.ciudadOrigen +
-                ' → ' +
-                resultado.viaje.ciudadDestino,
+            '${resultado.viaje.ciudadOrigen} → ${resultado.viaje.ciudadDestino}',
             style: const TextStyle(color: AppTheme.textPrimary),
           ),
           if (resultado.fechaInformada != null) ...[
             const SizedBox(height: 6),
             Text(
-              'Fecha: ' + formatearFechaVisible(resultado.fechaInformada!),
+              'Fecha: ${formatearFechaVisible(resultado.fechaInformada!)}',
             ),
           ],
           if (resultado.numeroVuelo != null) ...[
             const SizedBox(height: 6),
-            Text('Vuelo: ' + resultado.numeroVuelo!),
+            Text('Vuelo: ${resultado.numeroVuelo}'),
           ],
           if (resultado.estado != null) ...[
             const SizedBox(height: 6),
-            Text('Estado: ' + resultado.estado!),
+            Text('Estado: ${resultado.estado}'),
           ],
         ],
       ),
