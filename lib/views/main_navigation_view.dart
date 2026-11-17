@@ -14,6 +14,7 @@ import 'mis_encomiendas_view.dart';
 import 'mis_viajes_view.dart';
 import 'perfil_view.dart';
 import 'registrar_encomienda_view.dart';
+import 'buscar_viajeros_view.dart';
 import 'registrar_viaje_view.dart';
 import 'seguimiento_encomienda_view.dart';
 import 'seleccion_modo_view.dart';
@@ -319,6 +320,16 @@ Future<void> _completarViaje(
     );
   }
 
+  /// Abre la búsqueda de viajeros para el remitente.
+  void _buscarViajeros() {
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const BuscarViajerosView(),
+      ),
+    );
+  }
+
   /// Cambia a la pestaña de encomiendas.
   void _irAEncomiendas() {
     setState(() {
@@ -401,9 +412,7 @@ Future<void> _completarViaje(
                 InicioRemitenteView(
                   onPublicarEncomienda: _publicarEncomienda,
                   onVerEncomiendas: _irAEncomiendas,
-                  onBuscarViajeros: () => _mostrarAviso(
-                    'La búsqueda de viajeros estará disponible próximamente.',
-                  ),
+                  onBuscarViajeros: _buscarViajeros,
                 ),
                 MisEncomiendasView(
                   encomiendas:
