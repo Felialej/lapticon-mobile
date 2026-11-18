@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../controllers/encomiendas_tomadas_controller.dart';
 import '../models/encomienda.dart';
 import '../theme/app_theme.dart';
+import 'widgets/busqueda_por_ruta.dart';
 import 'widgets/etiqueta_estado.dart';
 
 /// HU-20: consulta por ruta de las encomiendas tomadas del viajero.
@@ -94,27 +95,15 @@ class _EncomiendasTomadasViewState extends State<EncomiendasTomadasView> {
             if (_controller.cargandoCiudades) {
               return const Center(child: CircularProgressIndicator());
             }
-            if (_controller.errorCiudades != null) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _controller.errorCiudades!,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 14),
-                      OutlinedButton(
-                        onPressed: _controller.cargarCiudades,
-                        child: const Text('Reintentar'),
-                      ),
-                    ],
-                  ),
-                ),
+            final errorCiudades = _controller.errorCiudades;
+            if (errorCiudades != null) {
+              return ErrorCatalogoCiudades(
+                mensaje: errorCiudades,
+                onReintentar: _controller.cargarCiudades,
               );
             }
+
+            final ciudades = _controller.ciudades;
 
             return SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 36),
@@ -141,14 +130,16 @@ class _EncomiendasTomadasViewState extends State<EncomiendasTomadasView> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _selectorCiudad(
+                        SelectorCiudad(
+                          ciudades: ciudades,
                           etiqueta: 'Ciudad de origen',
                           icono: Icons.flight_takeoff,
                           seleccionar: _controller.seleccionarOrigen,
                           validar: _controller.validarOrigen,
                         ),
                         const SizedBox(height: 16),
-                        _selectorCiudad(
+                        SelectorCiudad(
+                          ciudades: ciudades,
                           etiqueta: 'Ciudad de destino',
                           icono: Icons.flight_land,
                           seleccionar: _controller.seleccionarDestino,
@@ -171,15 +162,19 @@ class _EncomiendasTomadasViewState extends State<EncomiendasTomadasView> {
                   if (_controller.buscando)
                     const Center(child: CircularProgressIndicator()),
                   if (_controller.errorBusqueda != null)
-                    _mensaje(Icons.error_outline, _controller.errorBusqueda!),
+                    MensajeBusquedaRuta(
+                      icono: Icons.error_outline,
+                      mensaje: _controller.errorBusqueda!,
+                    ),
                   if (!_controller.buscando &&
                       _controller.errorBusqueda == null &&
                       _controller.busquedaRealizada) ...[
                     if (_controller.resultados.isEmpty)
-                      _mensaje(
-                        Icons.search_off,
-                        'No tienes encomiendas tomadas '
-                        'para esta ruta.',
+                      const MensajeBusquedaRuta(
+                        icono: Icons.search_off,
+                        mensaje:
+                            'No tienes encomiendas tomadas '
+                            'para esta ruta.',
                       )
                     else ...[
                       Text(
@@ -201,46 +196,6 @@ class _EncomiendasTomadasViewState extends State<EncomiendasTomadasView> {
           },
         ),
       ),
-    );
-  }
-
-  Widget _selectorCiudad({
-    required String etiqueta,
-    required IconData icono,
-    required ValueChanged<String?> seleccionar,
-    required String? Function() validar,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(etiqueta, style: const TextStyle(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
-        Autocomplete<String>(
-          optionsBuilder: (valor) {
-            final consulta = valor.text.trim().toLowerCase();
-            if (consulta.length < 2) {
-              return const Iterable<String>.empty();
-            }
-            return _controller.ciudades
-                .where((ciudad) => ciudad.toLowerCase().contains(consulta))
-                .take(12);
-          },
-          onSelected: seleccionar,
-          fieldViewBuilder: (context, texto, foco, _) {
-            return TextFormField(
-              controller: texto,
-              focusNode: foco,
-              onChanged: (_) => seleccionar(null),
-              validator: (_) => validar(),
-              decoration: InputDecoration(
-                hintText: 'Escribe al menos 2 letras',
-                prefixIcon: Icon(icono),
-                suffixIcon: const Icon(Icons.arrow_drop_down),
-              ),
-            );
-          },
-        ),
-      ],
     );
   }
 
@@ -309,24 +264,6 @@ class _EncomiendasTomadasViewState extends State<EncomiendasTomadasView> {
               ),
             ),
           ],
-        ],
-      ),
-    );
-  }
-
-  Widget _mensaje(IconData icono, String mensaje) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        children: [
-          Icon(icono, color: AppTheme.textSecondary, size: 30),
-          const SizedBox(height: 8),
-          Text(mensaje, textAlign: TextAlign.center),
         ],
       ),
     );

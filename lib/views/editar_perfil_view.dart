@@ -5,6 +5,7 @@ import '../models/perfil_usuario.dart';
 import '../theme/app_theme.dart';
 import '../utils/validadores.dart';
 import 'widgets/campos_formulario.dart';
+import 'widgets/formateadores_entrada.dart';
 
 /// Formulario de actualización de los datos personales.
 ///
@@ -233,6 +234,7 @@ class _EditarPerfilViewState extends State<EditarPerfilView> {
                     hintText: 'Ejemplo: 3001234567',
                     icono: Icons.phone_outlined,
                     keyboardType: TextInputType.phone,
+                    inputFormatters: const [FormateadorTelefono()],
                     validator: validarTelefono,
                   ),
 
