@@ -19,6 +19,82 @@ class EncomiendasException implements Exception {
 }
 
 class EncomiendasService {
+  /// HU-12. Obtiene encomiendas disponibles por origen y destino.
+  /// El documento funcional indica el endpoint, pero no el formato exacto
+  /// del JSON. Aceptamos una lista o un objeto con lista conocida.
+  Future<List<Encomienda>> buscarEncomiendasDisponibles({
+    required String origen,
+    required String destino,
+    required String idToken,
+  }) async {
+    final uri = Uri.parse(
+      '${ApiConfig.backendUrl}/api/encomiendas/disponibles',
+    ).replace(queryParameters: {
+      'origen': origen,
+      'destino': destino,
+    });
+
+    final http.Response respuesta;
+    try {
+      respuesta = await http.get(
+        uri,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $idToken',
+        },
+      );
+    } catch (_) {
+      throw const EncomiendasException(codigo: 'NETWORK_ERROR');
+    }
+
+    if (respuesta.statusCode != 200) {
+      final codigo = switch (respuesta.statusCode) {
+        400 => 'BAD_REQUEST',
+        401 || 403 => 'UNAUTHORIZED',
+        >= 500 => 'SERVER_ERROR',
+        _ => 'UNKNOWN_ERROR',
+      };
+      throw EncomiendasException(codigo: codigo);
+    }
+
+    try {
+      final dynamic datos = jsonDecode(respuesta.body);
+      final dynamic lista;
+      if (datos is List) {
+        lista = datos;
+      } else if (datos is Map<String, dynamic>) {
+        lista = datos['encomiendas'] ??
+            datos['disponibles'] ??
+            datos['data'];
+      } else {
+        throw const FormatException('Formato de respuesta desconocido');
+      }
+
+      if (lista is! List) {
+        throw const FormatException('No se recibió una lista de encomiendas');
+      }
+
+      final encomiendas = <Encomienda>[];
+      for (final elemento in lista) {
+        if (elemento is! Map<String, dynamic>) {
+          throw const FormatException('Encomienda inválida');
+        }
+        if (elemento['ciudadOrigen'] is! String ||
+            elemento['ciudadDestino'] is! String) {
+          throw const FormatException('Faltan ciudades en la encomienda');
+        }
+        final estadoRecibido = elemento['estado']?.toString().trim().toLowerCase();
+        if (estadoRecibido != null &&
+            estadoRecibido != EstadoEncomienda.disponible.valor) {
+          continue;
+        }
+        encomiendas.add(Encomienda.desdeJson(elemento));
+      }
+      return encomiendas;
+    } catch (_) {
+      throw const EncomiendasException(codigo: 'RESPUESTA_INVALIDA');
+    }
+  }
   /// Consulta únicamente las encomiendas tomadas que devuelve la API para
   /// la ruta y el viajero autenticado. No representa un historial de entregas.
   Future<List<Encomienda>> buscarEncomiendasTomadas({
