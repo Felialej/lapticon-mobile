@@ -8,14 +8,14 @@ import '../models/encomienda.dart';
 import '../models/modo_usuario.dart';
 import '../models/viaje.dart';
 import '../theme/app_theme.dart';
-import 'home_view.dart';
+import 'buscar_viajeros_view.dart';
 import 'encomiendas_tomadas_view.dart';
+import 'home_view.dart';
 import 'inicio_remitente_view.dart';
 import 'mis_encomiendas_view.dart';
 import 'mis_viajes_view.dart';
 import 'perfil_view.dart';
 import 'registrar_encomienda_view.dart';
-import 'buscar_viajeros_view.dart';
 import 'registrar_viaje_view.dart';
 import 'seguimiento_encomienda_view.dart';
 import 'seleccion_modo_view.dart';
@@ -25,22 +25,16 @@ import 'seleccion_modo_view.dart';
 /// Mantiene la función elegida, la barra inferior y los controladores que
 /// comparten las pestañas.
 class MainNavigationView extends StatefulWidget {
-  const MainNavigationView({
-    super.key,
-    required this.authController,
-  });
+  const MainNavigationView({super.key, required this.authController});
 
   /// Controlador compartido que gestiona la sesión.
   final AuthController authController;
 
   @override
-  State<MainNavigationView> createState() =>
-      _MainNavigationViewState();
+  State<MainNavigationView> createState() => _MainNavigationViewState();
 }
 
-class _MainNavigationViewState
-    extends State<MainNavigationView> {
-
+class _MainNavigationViewState extends State<MainNavigationView> {
   ModoUsuario? _modoSeleccionado;
   bool _eligiendoFuncion = true;
   bool _viajesSolicitados = false;
@@ -50,17 +44,14 @@ class _MainNavigationViewState
   int _indiceSeleccionado = 0;
 
   /// Controlador de viajes.
-  final ViajesController _viajesController =
-      ViajesController();
+  final ViajesController _viajesController = ViajesController();
 
   /// Controlador de las encomiendas publicadas como remitente.
-  final EncomiendasController _encomiendasController =
-      EncomiendasController();
+  final EncomiendasController _encomiendasController = EncomiendasController();
 
   /// Controlador del perfil. Se crea en este nivel para que la pestaña de
   /// perfil conserve los datos al cambiar de pestaña.
-  final PerfilController _perfilController =
-      PerfilController();
+  final PerfilController _perfilController = PerfilController();
 
   @override
   void initState() {
@@ -83,28 +74,22 @@ class _MainNavigationViewState
       return;
     }
 
-    await _encomiendasController.cargarEncomiendas(
-      idToken: usuario.idToken,
-    );
+    await _encomiendasController.cargarEncomiendas(idToken: usuario.idToken);
   }
 
   Future<void> _cargarViajes() async {
-    final usuario =
-        widget.authController.usuario;
+    final usuario = widget.authController.usuario;
 
     if (usuario == null) {
       return;
     }
 
-    await _viajesController.cargarViajes(
-      idToken: usuario.idToken,
-    );
+    await _viajesController.cargarViajes(idToken: usuario.idToken);
   }
 
   /// Consulta los datos personales del usuario autenticado.
   Future<void> _cargarPerfil() async {
-    final usuario =
-        widget.authController.usuario;
+    final usuario = widget.authController.usuario;
 
     if (usuario == null) {
       return;
@@ -118,183 +103,94 @@ class _MainNavigationViewState
 
   /// Abre el formulario de viaje y agrega al controlador el viaje devuelto.
   Future<void> _registrarViaje() async {
-  final usuario =
-      widget.authController.usuario;
+    final usuario = widget.authController.usuario;
 
-  if (usuario == null) {
-    if (!mounted) {
+    if (usuario == null) {
+      _mostrarAviso('Debes iniciar sesión para registrar un viaje.');
       return;
     }
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Debes iniciar sesión para registrar un viaje.',
-        ),
-        behavior:
-            SnackBarBehavior.floating,
+    final nuevoViaje = await Navigator.push<Viaje>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RegistrarViajeView(idToken: usuario.idToken),
       ),
     );
 
-    return;
-  }
+    if (nuevoViaje == null || !mounted) {
+      return;
+    }
 
-  final nuevoViaje =
-      await Navigator.push<Viaje>(
-    context,
-    MaterialPageRoute(
-      builder: (context) =>
-          RegistrarViajeView(
-        idToken: usuario.idToken,
-      ),
-    ),
-  );
-
-  if (nuevoViaje == null) {
-    return;
-  }
-
-  _viajesController.agregar(
-    nuevoViaje,
-  );
-
-  if (!mounted) {
-    return;
-  }
-
-  ScaffoldMessenger.of(context)
-      .showSnackBar(
-    SnackBar(
-      content: const Text(
-        'Viaje registrado correctamente',
-      ),
-      behavior:
-          SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.circular(12),
-      ),
-    ),
-  );
-}
-
-
-Future<void> _completarViaje(
-  Viaje viaje,
-) async {
-  final usuario =
-      widget.authController.usuario;  
-
-  if (usuario == null) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Debes iniciar sesión.',
-        ),
+    _viajesController.agregar(nuevoViaje);
+    _mostrarAviso(
+      'Viaje registrado correctamente',
+      forma: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(12)),
       ),
     );
-
-    return;
   }
 
-  final confirmado =
-      await showDialog<bool>(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        title:
-            const Text('Completar viaje'),
+  Future<void> _completarViaje(Viaje viaje) async {
+    final usuario = widget.authController.usuario;
+
+    if (usuario == null) {
+      _mostrarAviso('Debes iniciar sesión.');
+      return;
+    }
+
+    final confirmado = await _confirmarCompletarViaje(viaje);
+    if (confirmado != true || !mounted) {
+      return;
+    }
+
+    final resultado = await _viajesController.completarViaje(
+      viaje: viaje,
+      idToken: usuario.idToken,
+    );
+
+    _mostrarAviso(
+      resultado
+          ? 'Viaje marcado como completado'
+          : _viajesController.error ?? 'No fue posible completar el viaje.',
+    );
+  }
+
+  Future<bool?> _confirmarCompletarViaje(Viaje viaje) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Completar viaje'),
         content: Text(
           '¿Deseas marcar el viaje ${viaje.numeroVuelo} como completado?',
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.pop(
-                context,
-                false,
-              );
-            },
-            child:
-                const Text('Cancelar'),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
           ),
           FilledButton(
-            onPressed: () {
-              Navigator.pop(
-                context,
-                true,
-              );
-            },
-            child:
-                const Text('Completar'),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Completar'),
           ),
         ],
-      );
-    },
-  );
-
-  if (confirmado != true) {
-    return;
-  }
-
-  final resultado =
-      await _viajesController
-          .completarViaje(
-    viaje: viaje,
-    idToken: usuario.idToken,
-  );
-
-  if (!mounted) {
-    return;
-  }
-
-  if (!resultado) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-      SnackBar(
-        content: Text(
-          _viajesController.error ??
-              'No fue posible completar el viaje.',
-        ),
       ),
     );
-
-    return;
   }
-
-  ScaffoldMessenger.of(context)
-      .showSnackBar(
-    const SnackBar(
-      content: Text(
-        'Viaje marcado como completado',
-      ),
-      behavior:
-          SnackBarBehavior.floating,
-    ),
-  );
-}
 
   /// Abre el formulario de encomienda y avisa del resultado del registro.
   Future<void> _publicarEncomienda() async {
     final usuario = widget.authController.usuario;
 
     if (usuario == null) {
-      _mostrarAviso(
-        'Debes iniciar sesión para publicar una encomienda.',
-      );
+      _mostrarAviso('Debes iniciar sesión para publicar una encomienda.');
 
       return;
     }
 
-    final nuevaEncomienda =
-        await Navigator.push<Encomienda>(
+    final nuevaEncomienda = await Navigator.push<Encomienda>(
       context,
       MaterialPageRoute(
-        builder: (context) => RegistrarEncomiendaView(
-          idToken: usuario.idToken,
-        ),
+        builder: (context) => RegistrarEncomiendaView(idToken: usuario.idToken),
       ),
     );
 
@@ -304,9 +200,7 @@ Future<void> _completarViaje(
 
     _encomiendasController.agregar(nuevaEncomienda);
 
-    _mostrarAviso(
-      'Encomienda publicada correctamente',
-    );
+    _mostrarAviso('Encomienda publicada correctamente');
   }
 
   /// Abre el detalle de seguimiento, que el remitente solo consulta.
@@ -314,9 +208,7 @@ Future<void> _completarViaje(
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SeguimientoEncomiendaView(
-          encomienda: encomienda,
-        ),
+        builder: (context) => SeguimientoEncomiendaView(encomienda: encomienda),
       ),
     );
   }
@@ -325,9 +217,7 @@ Future<void> _completarViaje(
   void _buscarViajeros() {
     Navigator.push<void>(
       context,
-      MaterialPageRoute(
-        builder: (context) => const BuscarViajerosView(),
-      ),
+      MaterialPageRoute(builder: (context) => const BuscarViajerosView()),
     );
   }
 
@@ -344,27 +234,24 @@ Future<void> _completarViaje(
     );
   }
 
-  /// Cambia a la pestaña de encomiendas.
-  void _irAEncomiendas() {
+  void _seleccionarPestana(int indice) {
     setState(() {
-      _indiceSeleccionado = 1;
+      _indiceSeleccionado = indice;
     });
   }
 
-  void _mostrarAviso(String mensaje) {
+  void _mostrarAviso(String mensaje, {ShapeBorder? forma}) {
+    if (!mounted) {
+      return;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(mensaje),
         behavior: SnackBarBehavior.floating,
+        shape: forma,
       ),
     );
-  }
-
-  /// Cambia a la pestaña de viajes.
-  void _irAViajes() {
-    setState(() {
-      _indiceSeleccionado = 1;
-    });
   }
 
   void _continuarConFuncion() {
@@ -415,7 +302,7 @@ Future<void> _completarViaje(
                 HomeView(
                   cantidadViajes: _viajesController.cantidad,
                   onRegistrarViaje: _registrarViaje,
-                  onVerViajes: _irAViajes,
+                  onVerViajes: () => _seleccionarPestana(1),
                   onVerEncomiendasTomadas: _verEncomiendasTomadas,
                 ),
                 MisViajesView(
@@ -426,12 +313,11 @@ Future<void> _completarViaje(
               ] else ...[
                 InicioRemitenteView(
                   onPublicarEncomienda: _publicarEncomienda,
-                  onVerEncomiendas: _irAEncomiendas,
+                  onVerEncomiendas: () => _seleccionarPestana(1),
                   onBuscarViajeros: _buscarViajeros,
                 ),
                 MisEncomiendasView(
-                  encomiendas:
-                      _encomiendasController.encomiendas,
+                  encomiendas: _encomiendasController.encomiendas,
                   cargando: _encomiendasController.cargando,
                   error: _encomiendasController.error,
                   onPublicarEncomienda: _publicarEncomienda,
@@ -457,29 +343,17 @@ Future<void> _completarViaje(
         indicatorColor: const Color(0xFFE6EFFF),
         elevation: 4,
         height: 72,
-        onDestinationSelected: (index) {
-          setState(() {
-            _indiceSeleccionado = index;
-          });
-        },
+        onDestinationSelected: _seleccionarPestana,
         destinations: [
           const NavigationDestination(
-            icon: Icon(
-              Icons.home_outlined,
-            ),
-            selectedIcon: Icon(
-              Icons.home_rounded,
-              color: AppTheme.primary,
-            ),
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home_rounded, color: AppTheme.primary),
             label: 'Inicio',
           ),
           if (esViajero)
             const NavigationDestination(
               icon: Icon(Icons.flight_outlined),
-              selectedIcon: Icon(
-                Icons.flight_rounded,
-                color: AppTheme.primary,
-              ),
+              selectedIcon: Icon(Icons.flight_rounded, color: AppTheme.primary),
               label: 'Viajes',
             )
           else
@@ -492,13 +366,8 @@ Future<void> _completarViaje(
               label: 'Envíos',
             ),
           const NavigationDestination(
-            icon: Icon(
-              Icons.person_outline,
-            ),
-            selectedIcon: Icon(
-              Icons.person_rounded,
-              color: AppTheme.primary,
-            ),
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person_rounded, color: AppTheme.primary),
             label: 'Perfil',
           ),
         ],

@@ -4,6 +4,7 @@ import '../controllers/buscar_viajeros_controller.dart';
 import '../models/viaje_disponible.dart';
 import '../theme/app_theme.dart';
 import '../utils/formato_fecha.dart';
+import 'widgets/busqueda_por_ruta.dart';
 
 /// HU-15: el remitente puede consultar viajes disponibles por ruta.
 class BuscarViajerosView extends StatefulWidget {
@@ -47,27 +48,15 @@ class _BuscarViajerosViewState extends State<BuscarViajerosView> {
             if (_controller.cargandoCiudades) {
               return const Center(child: CircularProgressIndicator());
             }
-            if (_controller.errorCiudades != null) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _controller.errorCiudades!,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 14),
-                      OutlinedButton(
-                        onPressed: _controller.cargarCiudades,
-                        child: const Text('Reintentar'),
-                      ),
-                    ],
-                  ),
-                ),
+            final errorCiudades = _controller.errorCiudades;
+            if (errorCiudades != null) {
+              return ErrorCatalogoCiudades(
+                mensaje: errorCiudades,
+                onReintentar: _controller.cargarCiudades,
               );
             }
+
+            final ciudades = _controller.ciudades;
 
             return SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 36),
@@ -94,14 +83,16 @@ class _BuscarViajerosViewState extends State<BuscarViajerosView> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _selectorCiudad(
+                        SelectorCiudad(
+                          ciudades: ciudades,
                           etiqueta: 'Ciudad de origen',
                           icono: Icons.flight_takeoff,
                           seleccionar: _controller.seleccionarOrigen,
                           validar: _controller.validarOrigen,
                         ),
                         const SizedBox(height: 16),
-                        _selectorCiudad(
+                        SelectorCiudad(
+                          ciudades: ciudades,
                           etiqueta: 'Ciudad de destino',
                           icono: Icons.flight_land,
                           seleccionar: _controller.seleccionarDestino,
@@ -124,18 +115,19 @@ class _BuscarViajerosViewState extends State<BuscarViajerosView> {
                   if (_controller.buscando)
                     const Center(child: CircularProgressIndicator()),
                   if (_controller.errorBusqueda != null)
-                    _mensaje(
-                      Icons.error_outline,
-                      _controller.errorBusqueda!,
+                    MensajeBusquedaRuta(
+                      icono: Icons.error_outline,
+                      mensaje: _controller.errorBusqueda!,
                     ),
                   if (!_controller.buscando &&
                       _controller.errorBusqueda == null &&
                       _controller.busquedaRealizada) ...[
                     if (_controller.resultados.isEmpty)
-                      _mensaje(
-                        Icons.search_off,
-                        'No se encontraron viajeros disponibles '
-                        'para esta ruta.',
+                      const MensajeBusquedaRuta(
+                        icono: Icons.search_off,
+                        mensaje:
+                            'No se encontraron viajeros disponibles '
+                            'para esta ruta.',
                       )
                     else ...[
                       Text(
@@ -160,46 +152,6 @@ class _BuscarViajerosViewState extends State<BuscarViajerosView> {
     );
   }
 
-  Widget _selectorCiudad({
-    required String etiqueta,
-    required IconData icono,
-    required ValueChanged<String?> seleccionar,
-    required String? Function() validar,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(etiqueta, style: const TextStyle(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
-        Autocomplete<String>(
-          optionsBuilder: (valor) {
-            final consulta = valor.text.trim().toLowerCase();
-            if (consulta.length < 2) {
-              return const Iterable<String>.empty();
-            }
-            return _controller.ciudades
-                .where((ciudad) => ciudad.toLowerCase().contains(consulta))
-                .take(12);
-          },
-          onSelected: seleccionar,
-          fieldViewBuilder: (context, texto, foco, _) {
-            return TextFormField(
-              controller: texto,
-              focusNode: foco,
-              onChanged: (_) => seleccionar(null),
-              validator: (_) => validar(),
-              decoration: InputDecoration(
-                hintText: 'Escribe al menos 2 letras',
-                prefixIcon: Icon(icono),
-                suffixIcon: const Icon(Icons.arrow_drop_down),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
   Widget _tarjetaViajero(ViajeDisponible resultado) {
     return Container(
       width: double.infinity,
@@ -219,8 +171,7 @@ class _BuscarViajerosViewState extends State<BuscarViajerosView> {
               const SizedBox(width: 9),
               Expanded(
                 child: Text(
-                  resultado.nombreUsuario ??
-                      'Nombre no informado por la API',
+                  resultado.nombreUsuario ?? 'Nombre no informado por la API',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -236,9 +187,7 @@ class _BuscarViajerosViewState extends State<BuscarViajerosView> {
           ),
           if (resultado.fechaInformada != null) ...[
             const SizedBox(height: 6),
-            Text(
-              'Fecha: ${formatearFechaVisible(resultado.fechaInformada!)}',
-            ),
+            Text('Fecha: ${formatearFechaVisible(resultado.fechaInformada!)}'),
           ],
           if (resultado.numeroVuelo != null) ...[
             const SizedBox(height: 6),
@@ -248,24 +197,6 @@ class _BuscarViajerosViewState extends State<BuscarViajerosView> {
             const SizedBox(height: 6),
             Text('Estado: ${resultado.estado}'),
           ],
-        ],
-      ),
-    );
-  }
-
-  Widget _mensaje(IconData icono, String mensaje) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        children: [
-          Icon(icono, color: AppTheme.textSecondary, size: 30),
-          const SizedBox(height: 8),
-          Text(mensaje, textAlign: TextAlign.center),
         ],
       ),
     );
