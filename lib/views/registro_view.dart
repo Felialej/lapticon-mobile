@@ -4,6 +4,7 @@ import '../controllers/auth_controller.dart';
 import '../theme/app_theme.dart';
 import '../utils/validadores.dart';
 import 'widgets/campos_formulario.dart';
+import 'widgets/formateadores_entrada.dart';
 import 'widgets/marco_autenticacion.dart';
 
 /// Pantalla de creación de cuenta.
@@ -225,6 +226,7 @@ class _RegistroViewState extends State<RegistroView> {
                   hintText: 'Ejemplo: 3001234567',
                   icono: Icons.phone_outlined,
                   keyboardType: TextInputType.phone,
+                  inputFormatters: const [FormateadorTelefono()],
                   validator: validarTelefono,
                 ),
                 const SizedBox(height: 18),

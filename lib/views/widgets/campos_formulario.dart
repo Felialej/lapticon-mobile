@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../theme/app_theme.dart';
 import '../../utils/formato_fecha.dart';
@@ -16,6 +17,7 @@ class CampoTexto extends StatelessWidget {
     required this.icono,
     this.validator,
     this.keyboardType,
+    this.inputFormatters,
     this.textCapitalization = TextCapitalization.none,
     this.textInputAction = TextInputAction.next,
     this.obscureText = false,
@@ -40,6 +42,7 @@ class CampoTexto extends StatelessWidget {
 
   /// Tipo de teclado que conviene al dato, por ejemplo el numérico.
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
 
   /// Mayúsculas automáticas, útil en nombres y apellidos.
   final TextCapitalization textCapitalization;
@@ -60,6 +63,7 @@ class CampoTexto extends StatelessWidget {
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
           textCapitalization: textCapitalization,
           textInputAction: textInputAction,
           obscureText: obscureText,
@@ -78,9 +82,8 @@ class CampoTexto extends StatelessWidget {
 
 /// Selector de fecha con su etiqueta encima.
 ///
-/// Muestra la fecha elegida en formato `AAAA/MM/DD` y delega la apertura del
-/// calendario en quien lo use, porque esa acción necesita el contexto de la
-/// pantalla.
+/// Usa el formato `AAAA/MM/DD` por defecto y delega la apertura del calendario
+/// en la pantalla que lo usa.
 class SelectorFecha extends StatelessWidget {
   const SelectorFecha({
     super.key,
@@ -90,6 +93,7 @@ class SelectorFecha extends StatelessWidget {
     this.textoVacio = 'Seleccionar fecha',
     this.icono = Icons.calendar_month_outlined,
     this.usarTemaDeEntrada = false,
+    this.formatearFecha = formatearFechaAnioMesDia,
   });
 
   /// Texto que describe la fecha pedida.
@@ -107,11 +111,12 @@ class SelectorFecha extends StatelessWidget {
   /// Icono que acompaña al selector.
   final IconData icono;
   final bool usarTemaDeEntrada;
+  final String Function(DateTime fecha) formatearFecha;
 
   @override
   Widget build(BuildContext context) {
     final sinFecha = fecha == null;
-    final texto = sinFecha ? textoVacio : formatearFechaAnioMesDia(fecha!);
+    final texto = sinFecha ? textoVacio : formatearFecha(fecha!);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

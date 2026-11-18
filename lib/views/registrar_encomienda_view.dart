@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../controllers/registrar_encomienda_controller.dart';
 import '../theme/app_theme.dart';
+import '../utils/validadores.dart';
+import 'widgets/formateadores_entrada.dart';
 
 class RegistrarEncomiendaView extends StatefulWidget {
   const RegistrarEncomiendaView({
@@ -201,12 +203,15 @@ class _RegistrarEncomiendaViewState
 
                       TextFormField(
                         controller: _valorController,
+                        inputFormatters: const [FormateadorValorColombiano()],
                         keyboardType:
                             const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
                         decoration: const InputDecoration(
                           hintText: 'Ejemplo: 10',
+                          helperText: mensajeMaximoValorDeclarado,
+                          helperMaxLines: 2,
                           prefixIcon: Icon(
                             Icons.attach_money,
                           ),
