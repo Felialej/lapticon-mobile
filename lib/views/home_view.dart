@@ -12,6 +12,7 @@ class HomeView extends StatelessWidget {
     required this.cantidadViajes,
     required this.onRegistrarViaje,
     required this.onVerViajes,
+    required this.onVerEncomiendasTomadas,
   });
 
   /// Total de viajes registrados, tomado del controlador de viajes.
@@ -22,6 +23,7 @@ class HomeView extends StatelessWidget {
 
   /// Acción que cambia a la pestaña de viajes.
   final VoidCallback onVerViajes;
+  final VoidCallback onVerEncomiendasTomadas;
 
   @override
   Widget build(BuildContext context) {
@@ -221,6 +223,16 @@ class HomeView extends StatelessWidget {
                   ? 'Todavía no tienes viajes registrados'
                   : '$cantidadViajes viaje(s) registrado(s)',
               onTap: onVerViajes,
+            ),
+
+            const SizedBox(height: 12),
+
+            _ActionCard(
+              icon: Icons.inventory_2_outlined,
+              iconColor: AppTheme.primary,
+              title: 'Encomiendas tomadas',
+              subtitle: 'Consulta las encomiendas aceptadas por ruta',
+              onTap: onVerEncomiendasTomadas,
             ),
 
             const SizedBox(height: 26),
