@@ -9,6 +9,7 @@ import '../models/modo_usuario.dart';
 import '../models/viaje.dart';
 import '../theme/app_theme.dart';
 import 'home_view.dart';
+import 'encomiendas_tomadas_view.dart';
 import 'inicio_remitente_view.dart';
 import 'mis_encomiendas_view.dart';
 import 'mis_viajes_view.dart';
@@ -330,6 +331,19 @@ Future<void> _completarViaje(
     );
   }
 
+  void _verEncomiendasTomadas() {
+    final usuario = widget.authController.usuario;
+    if (usuario == null) {
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EncomiendasTomadasView(idToken: usuario.idToken),
+      ),
+    );
+  }
+
   /// Cambia a la pestaña de encomiendas.
   void _irAEncomiendas() {
     setState(() {
@@ -402,6 +416,7 @@ Future<void> _completarViaje(
                   cantidadViajes: _viajesController.cantidad,
                   onRegistrarViaje: _registrarViaje,
                   onVerViajes: _irAViajes,
+                  onVerEncomiendasTomadas: _verEncomiendasTomadas,
                 ),
                 MisViajesView(
                   viajes: _viajesController.viajes,

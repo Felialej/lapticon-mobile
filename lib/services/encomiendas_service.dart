@@ -19,6 +19,54 @@ class EncomiendasException implements Exception {
 }
 
 class EncomiendasService {
+  /// Consulta únicamente las encomiendas tomadas que devuelve la API para
+  /// la ruta y el viajero autenticado. No representa un historial de entregas.
+  Future<List<Encomienda>> buscarEncomiendasTomadas({
+    required String origen,
+    required String destino,
+    required String idToken,
+  }) async {
+    final uri = Uri.parse(
+      '${ApiConfig.backendUrl}/api/encomiendas/buscar',
+    ).replace(queryParameters: {'origen': origen, 'destino': destino});
+
+    final http.Response respuesta;
+    try {
+      respuesta = await http.get(uri, headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $idToken',
+      });
+    } catch (_) {
+      throw const EncomiendasException(codigo: 'NETWORK_ERROR');
+    }
+
+    // Clasificar el estado HTTP también cuando el servidor responde sin JSON.
+    if (respuesta.statusCode != 200) {
+      final codigo = switch (respuesta.statusCode) {
+        400 => 'BAD_REQUEST',
+        401 || 403 => 'UNAUTHORIZED',
+        >= 500 => 'SERVER_ERROR',
+        _ => 'UNKNOWN_ERROR',
+      };
+      throw EncomiendasException(codigo: codigo);
+    }
+
+    try {
+      final datos = jsonDecode(respuesta.body);
+      if (datos is! Map<String, dynamic> || datos['tomadas'] is! List) {
+        throw const FormatException('Se esperaba el arreglo tomadas.');
+      }
+      return (datos['tomadas'] as List).map((elemento) {
+        if (elemento is! Map<String, dynamic>) {
+          throw const FormatException('Encomienda no válida.');
+        }
+        return Encomienda.desdeJson(elemento);
+      }).toList();
+    } catch (_) {
+      throw const EncomiendasException(codigo: 'RESPUESTA_INVALIDA');
+    }
+  }
+
   Future<List<Encomienda>> obtenerEncomiendas({
     required String idToken,
   }) async {
