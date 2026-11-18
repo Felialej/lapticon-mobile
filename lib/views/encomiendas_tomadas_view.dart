@@ -39,6 +39,51 @@ class _EncomiendasTomadasViewState extends State<EncomiendasTomadasView> {
     }
   }
 
+  Future<void> _confirmarEntrega(Encomienda encomienda) async {
+    if (_controller.confirmandoEntrega) {
+      return;
+    }
+
+    final aceptado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar entrega'),
+        content: Text(
+          '¿Confirmas que entregaste la encomienda '
+          '${encomienda.ruta}? Esta acción cambiará su estado a recibida.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Sí, confirmar entrega'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || aceptado != true) {
+      return;
+    }
+
+    final exito = await _controller.confirmarEntrega(encomienda);
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          exito
+              ? 'Entrega confirmada. Estado: recibida.'
+              : _controller.errorEntrega ??
+                    'No fue posible confirmar la entrega.',
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -196,6 +241,29 @@ class _EncomiendasTomadasViewState extends State<EncomiendasTomadasView> {
           ),
           const SizedBox(height: 12),
           EtiquetaEstado(estado: encomienda.estado),
+          if (encomienda.estado == EstadoEncomienda.tomada) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _controller.confirmandoEntrega
+                    ? null
+                    : () => _confirmarEntrega(encomienda),
+                icon: _controller.entregandoId == encomienda.id
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.check_circle_outline),
+                label: Text(
+                  _controller.entregandoId == encomienda.id
+                      ? 'Confirmando...'
+                      : 'Confirmar entrega',
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

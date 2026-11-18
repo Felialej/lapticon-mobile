@@ -129,7 +129,14 @@ void main() {
           );
           addTearDown(controller.dispose);
           await controller.cargarCiudades();
-          expect(controller.ciudades, ['Bogota', 'Cali', 'Miami']);
+          expect(controller.ciudades, [
+            'Bogota',
+            'Cali',
+            'Madrid',
+            'Medellin',
+            'Miami',
+            'Paris',
+          ]);
           expect(controller.validarOrigen(), isNotNull);
           expect(controller.validarDestino(), isNotNull);
           await controller.buscar();
@@ -236,7 +243,9 @@ void main() {
         expect(controller.resultados, isEmpty);
       },
       () => MockClient((solicitud) async {
-        if (solicitud.url.path == '/api/ciudades/ciudades') return _ciudades();
+        if (solicitud.url.path == '/api/ciudades/ciudades') {
+          return _ciudades();
+        }
         return pendiente.future;
       }),
     );
@@ -261,7 +270,9 @@ void main() {
         expect(controller.resultados.single.id, 'tomada-1');
       },
       () => MockClient((solicitud) async {
-        if (solicitud.url.path == '/api/ciudades/ciudades') return _ciudades();
+        if (solicitud.url.path == '/api/ciudades/ciudades') {
+          return _ciudades();
+        }
         return ++consultas == 1
             ? http.Response('', 401)
             : _respuesta([_tomada]);

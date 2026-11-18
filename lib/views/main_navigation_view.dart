@@ -10,6 +10,7 @@ import '../models/viaje.dart';
 import '../theme/app_theme.dart';
 import 'buscar_viajeros_view.dart';
 import 'encomiendas_tomadas_view.dart';
+import 'buscar_encomiendas_view.dart';
 import 'home_view.dart';
 import 'inicio_remitente_view.dart';
 import 'mis_encomiendas_view.dart';
@@ -221,6 +222,22 @@ class _MainNavigationViewState extends State<MainNavigationView> {
     );
   }
 
+  void _buscarEncomiendasDisponibles() {
+    final usuario = widget.authController.usuario;
+    if (usuario == null) {
+      _mostrarAviso('Debes iniciar sesión para buscar encomiendas.');
+      return;
+    }
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BuscarEncomiendasView(
+          idToken: usuario.idToken,
+        ),
+      ),
+    );
+  }
+
   void _verEncomiendasTomadas() {
     final usuario = widget.authController.usuario;
     if (usuario == null) {
@@ -304,6 +321,7 @@ class _MainNavigationViewState extends State<MainNavigationView> {
                   onRegistrarViaje: _registrarViaje,
                   onVerViajes: () => _seleccionarPestana(1),
                   onVerEncomiendasTomadas: _verEncomiendasTomadas,
+                  onBuscarEncomiendas: _buscarEncomiendasDisponibles,
                 ),
                 MisViajesView(
                   viajes: _viajesController.viajes,
