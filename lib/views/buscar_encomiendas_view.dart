@@ -4,6 +4,7 @@ import '../controllers/buscar_encomiendas_controller.dart';
 import '../models/encomienda.dart';
 import '../theme/app_theme.dart';
 import 'widgets/etiqueta_estado.dart';
+import 'detalle_encomienda_view.dart';
 
 /// HU-12: búsqueda de encomiendas disponibles para un viajero.
 class BuscarEncomiendasView extends StatefulWidget {
@@ -198,6 +199,24 @@ class _BuscarEncomiendasViewState extends State<BuscarEncomiendasView> {
     );
   }
 
+  Future<void> _abrirDetalle(Encomienda encomienda) async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => DetalleEncomiendaView(
+          encomienda: encomienda,
+          idToken: widget.idToken,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    // Tras volver del detalle, consulta de nuevo para evitar estados obsoletos.
+    // Solo refresca si el usuario había realizado una búsqueda.
+    if (_controller.busquedaRealizada && !_controller.buscando) {
+      await _controller.buscar();
+    }
+  }
+
   Widget _tarjetaEncomienda(Encomienda encomienda) {
     return Container(
       width: double.infinity,
@@ -240,6 +259,14 @@ class _BuscarEncomiendasViewState extends State<BuscarEncomiendasView> {
           ),
           const SizedBox(height: 12),
           EtiquetaEstado(estado: encomienda.estado),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: encomienda.id == null || encomienda.id!.isEmpty
+                ? null
+                : () => _abrirDetalle(encomienda),
+            icon: const Icon(Icons.visibility_outlined),
+            label: const Text('Ver detalle'),
+          ),
         ],
       ),
     );

@@ -6,10 +6,7 @@ import '../config/api_config.dart';
 import '../models/encomienda.dart';
 
 class EncomiendasException implements Exception {
-  const EncomiendasException({
-    required this.codigo,
-    this.detalle,
-  });
+  const EncomiendasException({required this.codigo, this.detalle});
 
   final String codigo;
   final String? detalle;
@@ -19,6 +16,66 @@ class EncomiendasException implements Exception {
 }
 
 class EncomiendasService {
+  /// HU-13: asigna una encomienda al usuario autenticado.
+  /// El backend decide la identidad del viajero a partir del token Firebase.
+  Future<void> tomarEncomienda({
+    required String id,
+    required String idToken,
+  }) async {
+    if (id.trim().isEmpty) {
+      throw const EncomiendasException(codigo: 'BAD_REQUEST');
+    }
+    final uri = Uri.parse(
+      '${ApiConfig.backendUrl}/api/encomiendas/tomar/${Uri.encodeComponent(id)}',
+    );
+    final http.Response respuesta;
+    try {
+      respuesta = await http.put(
+        uri,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $idToken',
+        },
+      );
+    } catch (_) {
+      throw const EncomiendasException(codigo: 'NETWORK_ERROR');
+    }
+
+    if (respuesta.statusCode == 200 ||
+        respuesta.statusCode == 201 ||
+        respuesta.statusCode == 204) {
+      // No se presupone una estructura JSON que la HU no documenta.
+      // En HTTP, 2xx indica que el servidor aceptó la operación.
+      // Si hay un objeto con estado explícito, debe ser 'tomada'.
+      if (respuesta.body.trim().isNotEmpty) {
+        try {
+          final dynamic datos = jsonDecode(respuesta.body);
+          if (datos is Map<String, dynamic>) {
+            final dynamic encomienda = datos['encomienda'];
+            final dynamic estado = encomienda is Map<String, dynamic>
+                ? encomienda['estado']
+                : datos['estado'];
+            if (estado != null && estado.toString().toLowerCase() != 'tomada') {
+              throw const FormatException('Estado no confirmado');
+            }
+          }
+        } catch (_) {
+          throw const EncomiendasException(codigo: 'RESPUESTA_INVALIDA');
+        }
+      }
+      return;
+    }
+
+    final codigo = switch (respuesta.statusCode) {
+      400 => 'BAD_REQUEST',
+      401 || 403 => 'UNAUTHORIZED',
+      404 || 409 || 410 => 'NOT_AVAILABLE',
+      >= 500 => 'SERVER_ERROR',
+      _ => 'UNKNOWN_ERROR',
+    };
+    throw EncomiendasException(codigo: codigo);
+  }
+
   /// HU-12. Obtiene encomiendas disponibles por origen y destino.
   /// El documento funcional indica el endpoint, pero no el formato exacto
   /// del JSON. Aceptamos una lista o un objeto con lista conocida.
@@ -29,10 +86,7 @@ class EncomiendasService {
   }) async {
     final uri = Uri.parse(
       '${ApiConfig.backendUrl}/api/encomiendas/disponibles',
-    ).replace(queryParameters: {
-      'origen': origen,
-      'destino': destino,
-    });
+    ).replace(queryParameters: {'origen': origen, 'destino': destino});
 
     final http.Response respuesta;
     try {
@@ -63,9 +117,7 @@ class EncomiendasService {
       if (datos is List) {
         lista = datos;
       } else if (datos is Map<String, dynamic>) {
-        lista = datos['encomiendas'] ??
-            datos['disponibles'] ??
-            datos['data'];
+        lista = datos['encomiendas'] ?? datos['disponibles'] ?? datos['data'];
       } else {
         throw const FormatException('Formato de respuesta desconocido');
       }
@@ -83,7 +135,10 @@ class EncomiendasService {
             elemento['ciudadDestino'] is! String) {
           throw const FormatException('Faltan ciudades en la encomienda');
         }
-        final estadoRecibido = elemento['estado']?.toString().trim().toLowerCase();
+        final estadoRecibido = elemento['estado']
+            ?.toString()
+            .trim()
+            .toLowerCase();
         if (estadoRecibido != null &&
             estadoRecibido != EstadoEncomienda.disponible.valor) {
           continue;
@@ -95,6 +150,7 @@ class EncomiendasService {
       throw const EncomiendasException(codigo: 'RESPUESTA_INVALIDA');
     }
   }
+
   /// Consulta únicamente las encomiendas tomadas que devuelve la API para
   /// la ruta y el viajero autenticado. No representa un historial de entregas.
   Future<List<Encomienda>> buscarEncomiendasTomadas({
@@ -108,10 +164,13 @@ class EncomiendasService {
 
     final http.Response respuesta;
     try {
-      respuesta = await http.get(uri, headers: {
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $idToken',
-      });
+      respuesta = await http.get(
+        uri,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $idToken',
+        },
+      );
     } catch (_) {
       throw const EncomiendasException(codigo: 'NETWORK_ERROR');
     }
@@ -143,12 +202,8 @@ class EncomiendasService {
     }
   }
 
-  Future<List<Encomienda>> obtenerEncomiendas({
-    required String idToken,
-  }) async {
-    final uri = Uri.parse(
-      '${ApiConfig.backendUrl}/api/encomiendas',
-    );
+  Future<List<Encomienda>> obtenerEncomiendas({required String idToken}) async {
+    final uri = Uri.parse('${ApiConfig.backendUrl}/api/encomiendas');
 
     final http.Response respuesta;
 
@@ -161,9 +216,7 @@ class EncomiendasService {
         },
       );
     } catch (_) {
-      throw const EncomiendasException(
-        codigo: 'NETWORK_ERROR',
-      );
+      throw const EncomiendasException(codigo: 'NETWORK_ERROR');
     }
 
     dynamic datos;
@@ -172,17 +225,13 @@ class EncomiendasService {
       try {
         datos = jsonDecode(respuesta.body);
       } catch (_) {
-        throw const EncomiendasException(
-          codigo: 'RESPUESTA_INVALIDA',
-        );
+        throw const EncomiendasException(codigo: 'RESPUESTA_INVALIDA');
       }
     }
 
     if (respuesta.statusCode == 200) {
       if (datos is! List) {
-        throw const EncomiendasException(
-          codigo: 'RESPUESTA_INVALIDA',
-        );
+        throw const EncomiendasException(codigo: 'RESPUESTA_INVALIDA');
       }
 
       return datos
@@ -194,38 +243,25 @@ class EncomiendasService {
     String? detalle;
 
     if (datos is Map<String, dynamic>) {
-      detalle =
-          datos['message']?.toString() ??
-          datos['error']?.toString();
+      detalle = datos['message']?.toString() ?? datos['error']?.toString();
     }
 
     if (respuesta.statusCode == 401) {
-      throw EncomiendasException(
-        codigo: 'UNAUTHORIZED',
-        detalle: detalle,
-      );
+      throw EncomiendasException(codigo: 'UNAUTHORIZED', detalle: detalle);
     }
 
     if (respuesta.statusCode >= 500) {
-      throw EncomiendasException(
-        codigo: 'SERVER_ERROR',
-        detalle: detalle,
-      );
+      throw EncomiendasException(codigo: 'SERVER_ERROR', detalle: detalle);
     }
 
-    throw EncomiendasException(
-      codigo: 'UNKNOWN_ERROR',
-      detalle: detalle,
-    );
+    throw EncomiendasException(codigo: 'UNKNOWN_ERROR', detalle: detalle);
   }
 
   Future<Encomienda> registrarEncomienda({
     required Encomienda encomienda,
     required String idToken,
   }) async {
-    final uri = Uri.parse(
-      '${ApiConfig.backendUrl}/api/encomiendas',
-    );
+    final uri = Uri.parse('${ApiConfig.backendUrl}/api/encomiendas');
 
     final http.Response respuesta;
 
@@ -237,14 +273,10 @@ class EncomiendasService {
           'Accept': 'application/json',
           'Authorization': 'Bearer $idToken',
         },
-        body: jsonEncode(
-          encomienda.toJson(),
-        ),
+        body: jsonEncode(encomienda.toJson()),
       );
     } catch (_) {
-      throw const EncomiendasException(
-        codigo: 'NETWORK_ERROR',
-      );
+      throw const EncomiendasException(codigo: 'NETWORK_ERROR');
     }
 
     Map<String, dynamic>? datos;
@@ -261,12 +293,9 @@ class EncomiendasService {
       }
     }
 
-    if (respuesta.statusCode == 201 ||
-        respuesta.statusCode == 200) {
+    if (respuesta.statusCode == 201 || respuesta.statusCode == 200) {
       if (datos == null) {
-        throw const EncomiendasException(
-          codigo: 'RESPUESTA_INVALIDA',
-        );
+        throw const EncomiendasException(codigo: 'RESPUESTA_INVALIDA');
       }
 
       final encomiendaJson = datos['encomienda'];
@@ -279,33 +308,20 @@ class EncomiendasService {
     }
 
     final detalle =
-        datos?['message']?.toString() ??
-        datos?['error']?.toString();
+        datos?['message']?.toString() ?? datos?['error']?.toString();
 
     if (respuesta.statusCode == 400) {
-      throw EncomiendasException(
-        codigo: 'BAD_REQUEST',
-        detalle: detalle,
-      );
+      throw EncomiendasException(codigo: 'BAD_REQUEST', detalle: detalle);
     }
 
     if (respuesta.statusCode == 401) {
-      throw EncomiendasException(
-        codigo: 'UNAUTHORIZED',
-        detalle: detalle,
-      );
+      throw EncomiendasException(codigo: 'UNAUTHORIZED', detalle: detalle);
     }
 
     if (respuesta.statusCode >= 500) {
-      throw EncomiendasException(
-        codigo: 'SERVER_ERROR',
-        detalle: detalle,
-      );
+      throw EncomiendasException(codigo: 'SERVER_ERROR', detalle: detalle);
     }
 
-    throw EncomiendasException(
-      codigo: 'UNKNOWN_ERROR',
-      detalle: detalle,
-    );
+    throw EncomiendasException(codigo: 'UNKNOWN_ERROR', detalle: detalle);
   }
 }
