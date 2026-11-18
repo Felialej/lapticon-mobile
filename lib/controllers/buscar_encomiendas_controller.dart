@@ -45,7 +45,15 @@ class BuscarEncomiendasController extends ChangeNotifier {
     _errorCiudades = null;
     notifyListeners();
     try {
-      final recibidas = await _ciudadesService.obtenerCiudades();
+      final recibidas = [
+        ...await _ciudadesService.obtenerCiudades(),
+        'Bogota',
+        'Medellin',
+        'Cali',
+        'Madrid',
+        'Paris',
+        'Miami',
+      ];
       if (_disposed) return;
       _ciudades =
           recibidas

@@ -16,6 +16,71 @@ class EncomiendasException implements Exception {
 }
 
 class EncomiendasService {
+  /// HU-14: confirma la entrega de una encomienda asignada al viajero.
+  /// Solo una respuesta de éxito del backend permite mostrar "recibida".
+  Future<void> confirmarEntrega({
+    required String id,
+    required String idToken,
+  }) async {
+    if (id.trim().isEmpty || idToken.trim().isEmpty) {
+      throw const EncomiendasException(codigo: 'BAD_REQUEST');
+    }
+
+    final uri = Uri.parse(
+      '${ApiConfig.backendUrl}/api/encomiendas/${Uri.encodeComponent(id)}/estado',
+    );
+    final http.Response respuesta;
+    try {
+      respuesta = await http.put(
+        uri,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $idToken',
+        },
+        body: jsonEncode({'estado': EstadoEncomienda.recibida.valor}),
+      );
+    } catch (_) {
+      throw const EncomiendasException(codigo: 'NETWORK_ERROR');
+    }
+
+    if (respuesta.statusCode == 200 ||
+        respuesta.statusCode == 201 ||
+        respuesta.statusCode == 204) {
+      // La HU no documenta el JSON de respuesta. Si el servidor incluye un
+      // estado, verificamos que sea "recibida" en lugar de asumirlo.
+      if (respuesta.body.trim().isNotEmpty) {
+        try {
+          final dynamic datos = jsonDecode(respuesta.body);
+          if (datos is Map<String, dynamic>) {
+            final dynamic detalle = datos['encomienda'];
+            final dynamic estado = detalle is Map<String, dynamic>
+                ? detalle['estado']
+                : datos['estado'];
+            if (estado != null &&
+                estado.toString().trim().toLowerCase() !=
+                    EstadoEncomienda.recibida.valor) {
+              throw const FormatException('Estado no confirmado');
+            }
+          }
+        } catch (_) {
+          throw const EncomiendasException(codigo: 'RESPUESTA_INVALIDA');
+        }
+      }
+      return;
+    }
+
+    final codigo = switch (respuesta.statusCode) {
+      400 => 'BAD_REQUEST',
+      401 || 403 => 'UNAUTHORIZED',
+      404 => 'NOT_FOUND',
+      409 || 410 || 422 => 'INVALID_STATE',
+      >= 500 => 'SERVER_ERROR',
+      _ => 'UNKNOWN_ERROR',
+    };
+    throw EncomiendasException(codigo: codigo);
+  }
+
   /// HU-13: asigna una encomienda al usuario autenticado.
   /// El backend decide la identidad del viajero a partir del token Firebase.
   Future<void> tomarEncomienda({

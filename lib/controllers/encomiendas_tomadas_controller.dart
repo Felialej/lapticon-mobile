@@ -26,6 +26,8 @@ class EncomiendasTomadasController extends ChangeNotifier {
   bool _cargandoCiudades = false;
   bool _buscando = false;
   bool _busquedaRealizada = false;
+  String? _entregandoId;
+  String? _errorEntrega;
   int _versionBusqueda = 0;
   bool _disposed = false;
 
@@ -38,13 +40,24 @@ class EncomiendasTomadasController extends ChangeNotifier {
   bool get cargandoCiudades => _cargandoCiudades;
   bool get buscando => _buscando;
   bool get busquedaRealizada => _busquedaRealizada;
+  String? get entregandoId => _entregandoId;
+  bool get confirmandoEntrega => _entregandoId != null;
+  String? get errorEntrega => _errorEntrega;
 
   Future<void> cargarCiudades() async {
     _cargandoCiudades = true;
     _errorCiudades = null;
     notifyListeners();
     try {
-      final recibidas = await _ciudadesService.obtenerCiudades();
+      final recibidas = [
+        ...await _ciudadesService.obtenerCiudades(),
+        'Bogota',
+        'Medellin',
+        'Cali',
+        'Madrid',
+        'Paris',
+        'Miami',
+      ];
       if (_disposed) return;
       _ciudades =
           recibidas
@@ -76,6 +89,88 @@ class EncomiendasTomadasController extends ChangeNotifier {
   void seleccionarDestino(String? ciudad) {
     _destino = _ciudades.contains(ciudad) ? ciudad : null;
     _limpiarBusqueda();
+  }
+
+  /// HU-14: confirma la entrega y actualiza la tarjeta solo si el backend
+  /// completó la operación. No inventa un historial de entregas.
+  Future<bool> confirmarEntrega(Encomienda encomienda) async {
+    if (_disposed || _entregandoId != null) {
+      return false;
+    }
+
+    final id = encomienda.id?.trim();
+    if (encomienda.estado != EstadoEncomienda.tomada) {
+      _errorEntrega = 'Solo se pueden entregar encomiendas tomadas.';
+      notifyListeners();
+      return false;
+    }
+    if (id == null || id.isEmpty) {
+      _errorEntrega = 'La encomienda no tiene un identificador válido.';
+      notifyListeners();
+      return false;
+    }
+    if (idToken.trim().isEmpty) {
+      _errorEntrega = 'Tu sesión no es válida. Vuelve a iniciar sesión.';
+      notifyListeners();
+      return false;
+    }
+
+    final version = _versionBusqueda;
+    _entregandoId = id;
+    _errorEntrega = null;
+    notifyListeners();
+    try {
+      await _encomiendasService.confirmarEntrega(id: id, idToken: idToken);
+      if (_disposed) {
+        return false;
+      }
+
+      if (version == _versionBusqueda) {
+        final indice = _resultados.indexWhere((elemento) => elemento.id == id);
+        if (indice != -1) {
+          final original = _resultados[indice];
+          _resultados = List<Encomienda>.of(_resultados);
+          _resultados[indice] = Encomienda(
+            id: original.id,
+            ciudadOrigen: original.ciudadOrigen,
+            ciudadDestino: original.ciudadDestino,
+            observaciones: original.observaciones,
+            moneda: original.moneda,
+            valor: original.valor,
+            estado: EstadoEncomienda.recibida,
+          );
+        }
+      }
+      return true;
+    } on EncomiendasException catch (excepcion) {
+      if (_disposed) {
+        return false;
+      }
+      _errorEntrega = switch (excepcion.codigo) {
+        'UNAUTHORIZED' =>
+          'Tu sesión expiró o no tienes permiso para confirmar esta entrega.',
+        'NETWORK_ERROR' => 'No fue posible conectar con el servidor.',
+        'INVALID_STATE' =>
+          'La encomienda ya no está en estado tomada o no puede entregarse.',
+        'NOT_FOUND' => 'La encomienda ya no existe.',
+        'BAD_REQUEST' => 'La solicitud de entrega no es válida.',
+        'SERVER_ERROR' => 'El servidor presentó un problema.',
+        'RESPUESTA_INVALIDA' => 'El servidor no confirmó el estado recibida.',
+        _ => 'No fue posible confirmar la entrega.',
+      };
+      return false;
+    } catch (_) {
+      if (_disposed) {
+        return false;
+      }
+      _errorEntrega = 'No fue posible confirmar la entrega.';
+      return false;
+    } finally {
+      if (!_disposed) {
+        _entregandoId = null;
+        notifyListeners();
+      }
+    }
   }
 
   void _limpiarBusqueda() {

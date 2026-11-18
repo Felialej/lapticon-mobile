@@ -129,7 +129,14 @@ void main() {
           );
           addTearDown(controller.dispose);
           await controller.cargarCiudades();
-          expect(controller.ciudades, ['Bogota', 'Cali', 'Miami']);
+          expect(controller.ciudades, [
+            'Bogota',
+            'Cali',
+            'Madrid',
+            'Medellin',
+            'Miami',
+            'Paris',
+          ]);
           expect(controller.validarOrigen(), isNotNull);
           expect(controller.validarDestino(), isNotNull);
           await controller.buscar();
