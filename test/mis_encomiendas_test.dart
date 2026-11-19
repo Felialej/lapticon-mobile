@@ -10,8 +10,8 @@ void main() {
     ciudadOrigen: 'Bogotá',
     ciudadDestino: 'Miami',
     observaciones: 'Paquete pequeño',
-    moneda: 'USD',
-    valor: 10,
+    moneda: 'COP',
+    valor: 60000,
     estado: EstadoEncomienda.tomada,
   );
 
@@ -36,7 +36,7 @@ void main() {
       );
 
       expect(find.text('Bogotá → Miami'), findsOneWidget);
-      expect(find.text('USD 10'), findsOneWidget);
+      expect(find.text('COP 60.000'), findsOneWidget);
       expect(find.text('Tomada'), findsOneWidget);
       expect(find.text('Ver seguimiento'), findsOneWidget);
       expect(
@@ -81,6 +81,7 @@ void main() {
       );
 
       expect(find.text('Progreso de entrega'), findsOneWidget);
+      expect(find.text('COP 60.000'), findsOneWidget);
       expect(find.text('Disponible'), findsOneWidget);
       expect(find.text('Tomada'), findsWidgets);
       expect(find.text('Recibida'), findsOneWidget);
@@ -93,7 +94,7 @@ void main() {
       expect(find.byType(FilledButton), findsNothing);
       expect(
         find.textContaining('El viajero actualiza los estados'),
-        findsOneWidget,
+        findsNothing,
       );
     },
   );
@@ -118,7 +119,7 @@ void main() {
       );
 
       expect(find.byIcon(Icons.check), findsNothing);
-      expect(find.text('EUR 25.50'), findsOneWidget);
+      expect(find.text('EUR 25,50'), findsOneWidget);
       expect(
         find.textContaining('venció antes de que un viajero'),
         findsOneWidget,

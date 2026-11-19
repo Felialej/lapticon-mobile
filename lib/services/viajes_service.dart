@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
 import '../models/viaje.dart';
+import '../models/viaje_disponible.dart';
 
 /// Error producido al consumir los endpoints de viajes.
 class ViajesException implements Exception {
@@ -295,5 +296,62 @@ Future<void> cambiarEstadoViaje({
 
 
 
+
+
+  /// HU-15: consulta viajes disponibles por ruta, sin token (API pública).
+  Future<List<ViajeDisponible>> buscarViajesDisponibles({
+    required String ciudadOrigen,
+    required String ciudadDestino,
+  }) async {
+    final uri = Uri.parse(
+      '${ApiConfig.backendUrl}/api/viajes/disponibles',
+    ).replace(queryParameters: {
+      'ciudadOrigen': ciudadOrigen,
+      'ciudadDestino': ciudadDestino,
+    });
+
+    final http.Response respuesta;
+    try {
+      respuesta = await http.get(uri, headers: {'Accept': 'application/json'});
+    } catch (_) {
+      throw const ViajesException(codigo: 'NETWORK_ERROR');
+    }
+
+    dynamic datos;
+    try {
+      datos = jsonDecode(respuesta.body);
+    } catch (_) {
+      throw const ViajesException(codigo: 'RESPUESTA_INVALIDA');
+    }
+
+    if (respuesta.statusCode == 200) {
+      if (datos is! List) {
+        throw const ViajesException(codigo: 'RESPUESTA_INVALIDA');
+      }
+      try {
+        return datos.map((elemento) {
+          if (elemento is! Map<String, dynamic>) {
+            throw const FormatException('El viaje no es un objeto JSON');
+          }
+          return ViajeDisponible.desdeJson(elemento);
+        }).toList();
+      } catch (_) {
+        throw const ViajesException(codigo: 'RESPUESTA_INVALIDA');
+      }
+    }
+
+    String? detalle;
+    if (datos is Map<String, dynamic>) {
+      detalle = datos['error']?.toString() ??
+          datos['message']?.toString();
+    }
+    if (respuesta.statusCode == 400) {
+      throw ViajesException(codigo: 'BAD_REQUEST', detalle: detalle);
+    }
+    if (respuesta.statusCode >= 500) {
+      throw ViajesException(codigo: 'SERVER_ERROR', detalle: detalle);
+    }
+    throw ViajesException(codigo: 'UNKNOWN_ERROR', detalle: detalle);
+  }
 
 }

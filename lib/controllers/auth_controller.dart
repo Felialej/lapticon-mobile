@@ -82,7 +82,7 @@ class AuthController extends ChangeNotifier {
         nombre: nombre.trim(),
         apellido: apellido.trim(),
         telefono: telefono.trim(),
-        nacionalidad: nacionalidad.trim(),
+        nacionalidad: nacionalidad,
         fechaNacimiento: fechaNacimiento,
       );
 

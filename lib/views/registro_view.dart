@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../controllers/auth_controller.dart';
+import '../controllers/catalogo_paises_controller.dart';
 import '../theme/app_theme.dart';
 import '../utils/validadores.dart';
 import 'widgets/campos_formulario.dart';
+import 'widgets/formateadores_entrada.dart';
 import 'widgets/marco_autenticacion.dart';
+import 'widgets/selector_pais.dart';
 
 /// Pantalla de creación de cuenta.
 ///
@@ -12,10 +15,7 @@ import 'widgets/marco_autenticacion.dart';
 /// crea Firebase. Comparte el mismo [AuthController] que el inicio de sesión,
 /// porque ambas pantallas operan sobre la misma sesión.
 class RegistroView extends StatefulWidget {
-  const RegistroView({
-    super.key,
-    required this.authController,
-  });
+  const RegistroView({super.key, required this.authController});
 
   /// Controlador compartido que gestiona la sesión.
   final AuthController authController;
@@ -32,9 +32,11 @@ class _RegistroViewState extends State<RegistroView> {
   final _nombreController = TextEditingController();
   final _apellidoController = TextEditingController();
   final _telefonoController = TextEditingController();
-  final _nacionalidadController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  final _catalogoPaises = CatalogoPaisesController();
+  String? _paisNacimiento;
 
   /// Fecha de nacimiento elegida en el calendario.
   ///
@@ -49,11 +51,17 @@ class _RegistroViewState extends State<RegistroView> {
   AuthController get _auth => widget.authController;
 
   @override
+  void initState() {
+    super.initState();
+    _catalogoPaises.cargar();
+  }
+
+  @override
   void dispose() {
     _nombreController.dispose();
     _apellidoController.dispose();
     _telefonoController.dispose();
-    _nacionalidadController.dispose();
+    _catalogoPaises.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -106,7 +114,7 @@ class _RegistroViewState extends State<RegistroView> {
       apellido: _apellidoController.text,
       telefono: _telefonoController.text,
       fechaNacimiento: _fechaNacimiento!,
-      nacionalidad: _nacionalidadController.text,
+      nacionalidad: _paisNacimiento!,
     );
 
     if (!mounted) {
@@ -114,9 +122,7 @@ class _RegistroViewState extends State<RegistroView> {
     }
 
     if (!exito) {
-      _mostrarMensaje(
-        _auth.error ?? 'No fue posible crear la cuenta.',
-      );
+      _mostrarMensaje(_auth.error ?? 'No fue posible crear la cuenta.');
       return;
     }
 
@@ -132,10 +138,7 @@ class _RegistroViewState extends State<RegistroView> {
   /// Muestra un aviso en la parte inferior de la pantalla.
   void _mostrarMensaje(String mensaje) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(mensaje),
-        behavior: SnackBarBehavior.floating,
-      ),
+      SnackBar(content: Text(mensaje), behavior: SnackBarBehavior.floating),
     );
   }
 
@@ -148,14 +151,8 @@ class _RegistroViewState extends State<RegistroView> {
       barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
-          icon: const Icon(
-            Icons.check_circle,
-            color: Colors.green,
-            size: 52,
-          ),
-          title: const Text(
-            'Cuenta creada',
-          ),
+          icon: const Icon(Icons.check_circle, color: Colors.green, size: 52),
+          title: const Text('Cuenta creada'),
           content: Text(
             'La cuenta $correo fue registrada correctamente.',
             textAlign: TextAlign.center,
@@ -165,9 +162,7 @@ class _RegistroViewState extends State<RegistroView> {
               onPressed: () {
                 Navigator.pop(context);
               },
-              child: const Text(
-                'Continuar',
-              ),
+              child: const Text('Continuar'),
             ),
           ],
         );
@@ -197,99 +192,9 @@ class _RegistroViewState extends State<RegistroView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const _TituloSeccion(titulo: 'Datos personales'),
-                const SizedBox(height: 14),
-                CampoTexto(
-                  etiqueta: 'Nombre',
-                  controller: _nombreController,
-                  hintText: 'Ejemplo: Ana',
-                  icono: Icons.person_outline,
-                  textCapitalization: TextCapitalization.words,
-                  validator: (valor) =>
-                      validarTextoObligatorio(valor, 'nombre'),
-                ),
-                const SizedBox(height: 18),
-                CampoTexto(
-                  etiqueta: 'Apellido',
-                  controller: _apellidoController,
-                  hintText: 'Ejemplo: Gómez',
-                  icono: Icons.badge_outlined,
-                  textCapitalization: TextCapitalization.words,
-                  validator: (valor) =>
-                      validarTextoObligatorio(valor, 'apellido'),
-                ),
-                const SizedBox(height: 18),
-                CampoTexto(
-                  etiqueta: 'Teléfono',
-                  controller: _telefonoController,
-                  hintText: 'Ejemplo: 3001234567',
-                  icono: Icons.phone_outlined,
-                  keyboardType: TextInputType.phone,
-                  validator: validarTelefono,
-                ),
-                const SizedBox(height: 18),
-                SelectorFecha(
-                  etiqueta: 'Fecha de nacimiento',
-                  fecha: _fechaNacimiento,
-                  onTap: _seleccionarFechaNacimiento,
-                  textoVacio: 'AAAA/MM/DD',
-                  icono: Icons.cake_outlined,
-                  usarTemaDeEntrada: true,
-                ),
-                const SizedBox(height: 18),
-                CampoTexto(
-                  etiqueta: 'Nacionalidad',
-                  controller: _nacionalidadController,
-                  hintText: 'Ejemplo: Colombia',
-                  icono: Icons.public_outlined,
-                  textCapitalization: TextCapitalization.words,
-                  validator: (valor) =>
-                      validarTextoObligatorio(valor, 'nacionalidad'),
-                ),
+                ..._datosPersonales(),
                 const SizedBox(height: 28),
-                const _TituloSeccion(titulo: 'Datos de acceso'),
-                const SizedBox(height: 14),
-                CampoTexto(
-                  etiqueta: 'Correo electrónico',
-                  controller: _emailController,
-                  hintText: 'correo@ejemplo.com',
-                  icono: Icons.email_outlined,
-                  keyboardType: TextInputType.emailAddress,
-                  validator: _auth.validarCorreo,
-                ),
-                const SizedBox(height: 18),
-                CampoTexto(
-                  etiqueta: 'Contraseña',
-                  controller: _passwordController,
-                  hintText:
-                      'Mínimo ${AuthController.minimoCaracteresPassword} caracteres',
-                  icono: Icons.lock_outline,
-                  obscureText: _ocultarPassword,
-                  textInputAction: TextInputAction.done,
-                  suffixIcon: IconButton(
-                    tooltip: _ocultarPassword
-                        ? 'Mostrar contraseña'
-                        : 'Ocultar contraseña',
-                    onPressed: () {
-                      setState(() {
-                        _ocultarPassword = !_ocultarPassword;
-                      });
-                    },
-                    icon: Icon(
-                      _ocultarPassword
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
-                    ),
-                  ),
-                  validator: (valor) =>
-                      _auth.validarPassword(valor, exigirLongitudMinima: true),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Usa una contraseña de al menos '
-                  '${AuthController.minimoCaracteresPassword} caracteres.',
-                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-                ),
+                ..._datosDeAcceso(),
                 const SizedBox(height: 26),
                 FilledButton(
                   onPressed: cargando ? null : _registrar,
@@ -325,6 +230,104 @@ class _RegistroViewState extends State<RegistroView> {
         },
       ),
     );
+  }
+
+  List<Widget> _datosPersonales() {
+    return [
+      const _TituloSeccion(titulo: 'Datos personales'),
+      const SizedBox(height: 14),
+      CampoTexto(
+        etiqueta: 'Nombre',
+        controller: _nombreController,
+        hintText: 'Ejemplo: Ana',
+        icono: Icons.person_outline,
+        textCapitalization: TextCapitalization.words,
+        validator: (valor) => validarTextoObligatorio(valor, 'nombre'),
+      ),
+      const SizedBox(height: 18),
+      CampoTexto(
+        etiqueta: 'Apellido',
+        controller: _apellidoController,
+        hintText: 'Ejemplo: Gómez',
+        icono: Icons.badge_outlined,
+        textCapitalization: TextCapitalization.words,
+        validator: (valor) => validarTextoObligatorio(valor, 'apellido'),
+      ),
+      const SizedBox(height: 18),
+      CampoTexto(
+        etiqueta: 'Teléfono',
+        controller: _telefonoController,
+        hintText: 'Ejemplo: 3001234567',
+        icono: Icons.phone_outlined,
+        keyboardType: TextInputType.phone,
+        inputFormatters: const [FormateadorTelefono()],
+        validator: validarTelefono,
+      ),
+      const SizedBox(height: 18),
+      SelectorFecha(
+        etiqueta: 'Fecha de nacimiento',
+        fecha: _fechaNacimiento,
+        onTap: _seleccionarFechaNacimiento,
+        textoVacio: 'AAAA/MM/DD',
+        icono: Icons.cake_outlined,
+        usarTemaDeEntrada: true,
+      ),
+      const SizedBox(height: 18),
+      SelectorPais(
+        catalogo: _catalogoPaises,
+        seleccion: _paisNacimiento,
+        onSeleccionar: (pais) => setState(() => _paisNacimiento = pais),
+        validar: () => _catalogoPaises.validarPais(_paisNacimiento),
+      ),
+    ];
+  }
+
+  List<Widget> _datosDeAcceso() {
+    return [
+      const _TituloSeccion(titulo: 'Datos de acceso'),
+      const SizedBox(height: 14),
+      CampoTexto(
+        etiqueta: 'Correo electrónico',
+        controller: _emailController,
+        hintText: 'correo@ejemplo.com',
+        icono: Icons.email_outlined,
+        keyboardType: TextInputType.emailAddress,
+        validator: _auth.validarCorreo,
+      ),
+      const SizedBox(height: 18),
+      CampoTexto(
+        etiqueta: 'Contraseña',
+        controller: _passwordController,
+        hintText:
+            'Mínimo ${AuthController.minimoCaracteresPassword} caracteres',
+        icono: Icons.lock_outline,
+        obscureText: _ocultarPassword,
+        textInputAction: TextInputAction.done,
+        suffixIcon: IconButton(
+          tooltip: _ocultarPassword
+              ? 'Mostrar contraseña'
+              : 'Ocultar contraseña',
+          onPressed: () {
+            setState(() {
+              _ocultarPassword = !_ocultarPassword;
+            });
+          },
+          icon: Icon(
+            _ocultarPassword
+                ? Icons.visibility_outlined
+                : Icons.visibility_off_outlined,
+          ),
+        ),
+        validator: (valor) =>
+            _auth.validarPassword(valor, exigirLongitudMinima: true),
+      ),
+      const SizedBox(height: 12),
+      const Text(
+        'Usa una contraseña de al menos '
+        '${AuthController.minimoCaracteresPassword} caracteres.',
+        style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+      ),
+    ];
   }
 }
 

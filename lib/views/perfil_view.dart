@@ -16,7 +16,6 @@ class PerfilView extends StatelessWidget {
     super.key,
     required this.authController,
     required this.perfilController,
-    required this.onCambiarFuncion,
   });
 
   /// Controlador compartido que gestiona la sesión.
@@ -24,13 +23,9 @@ class PerfilView extends StatelessWidget {
 
   /// Controlador que consulta y actualiza los datos personales.
   final PerfilController perfilController;
-  final VoidCallback onCambiarFuncion;
 
   /// Abre la pantalla de edición y avisa del resultado al volver.
-  Future<void> _editarPerfil(
-    BuildContext context,
-    PerfilUsuario perfil,
-  ) async {
+  Future<void> _editarPerfil(BuildContext context, PerfilUsuario perfil) async {
     final usuario = authController.usuario;
 
     if (usuario == null) {
@@ -89,16 +84,14 @@ class PerfilView extends StatelessWidget {
     // El ListenableBuilder redibuja la pestaña cuando el perfil se carga o se
     // actualiza.
     return ListenableBuilder(
-      listenable: perfilController,
+      listenable: Listenable.merge([
+        perfilController,
+        perfilController.catalogoPaises,
+      ]),
       builder: (context, _) {
         return SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(
-              20,
-              20,
-              20,
-              30,
-            ),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -115,9 +108,7 @@ class PerfilView extends StatelessWidget {
 
                 const Text(
                   'Información de tu cuenta',
-                  style: TextStyle(
-                    color: AppTheme.textSecondary,
-                  ),
+                  style: TextStyle(color: AppTheme.textSecondary),
                 ),
 
                 const SizedBox(height: 24),
@@ -128,30 +119,16 @@ class PerfilView extends StatelessWidget {
 
                 const SizedBox(height: 26),
 
-                OutlinedButton.icon(
-                  onPressed: onCambiarFuncion,
-                  icon: const Icon(Icons.swap_horiz),
-                  label: const Text('Cambiar función'),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(52),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
                 // Al cerrar sesión el controlador descarta el usuario y la
                 // raíz de la aplicación vuelve al inicio de sesión.
                 OutlinedButton.icon(
                   onPressed: () => _cerrarSesion(context),
                   icon: const Icon(Icons.logout),
-                  label: const Text(
-                    'Cerrar sesión',
-                  ),
+                  label: const Text('Cerrar sesión'),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size.fromHeight(52),
                     foregroundColor: const Color(0xFFB42318),
-                    side: const BorderSide(
-                      color: Color(0xFFFDA29B),
-                    ),
+                    side: const BorderSide(color: Color(0xFFFDA29B)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -170,9 +147,7 @@ class PerfilView extends StatelessWidget {
     if (perfilController.cargando) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 60),
-        child: Center(
-          child: CircularProgressIndicator(),
-        ),
+        child: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -180,73 +155,29 @@ class PerfilView extends StatelessWidget {
 
     if (perfil == null) {
       return _MensajeDeError(
-        mensaje:
-            perfilController.error ??
-            'No fue posible cargar tus datos.',
+        mensaje: perfilController.error ?? 'No fue posible cargar tus datos.',
         onReintentar: _recargar,
       );
     }
 
+    return _fichaPerfil(context, perfil);
+  }
+
+  Widget _fichaPerfil(BuildContext context, PerfilUsuario perfil) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Identificación de la cuenta.
-        Center(
-          child: Column(
-            children: [
-              Container(
-                width: 105,
-                height: 105,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEAF2FF),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.person_rounded,
-                  size: 55,
-                  color: AppTheme.primary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                perfil.nombreCompleto.isEmpty
-                    ? 'Usuario Lapticon'
-                    : perfil.nombreCompleto,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 21,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                perfil.correo,
-                style: const TextStyle(
-                  color: AppTheme.textSecondary,
-                ),
-              ),
-            ],
-          ),
-        ),
+        _identificacionCuenta(perfil),
 
         const SizedBox(height: 30),
 
         const Text(
           'Datos registrados',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
 
         const SizedBox(height: 12),
 
-        // Cada dato guardado en el backend, en el orden del formulario.
-        _FilaDato(
-          icono: Icons.key_outlined,
-          etiqueta: 'ID de la cuenta',
-          valor: perfil.uid,
-        ),
         _FilaDato(
           icono: Icons.person_outline,
           etiqueta: 'Nombre',
@@ -271,8 +202,8 @@ class PerfilView extends StatelessWidget {
         ),
         _FilaDato(
           icono: Icons.public_outlined,
-          etiqueta: 'Nacionalidad',
-          valor: perfil.nacionalidad,
+          etiqueta: 'País de nacimiento',
+          valor: _mostrarPais(perfil.nacionalidad),
         ),
         _FilaDato(
           icono: Icons.email_outlined,
@@ -285,11 +216,53 @@ class PerfilView extends StatelessWidget {
         FilledButton.icon(
           onPressed: () => _editarPerfil(context, perfil),
           icon: const Icon(Icons.edit_outlined),
-          label: const Text(
-            'Actualizar datos',
-          ),
+          label: const Text('Actualizar datos'),
         ),
       ],
+    );
+  }
+
+  String _mostrarPais(String valor) {
+    if (valor.isEmpty) return '';
+    final catalogo = perfilController.catalogoPaises;
+    if (catalogo.paises.isNotEmpty && !catalogo.contiene(valor)) {
+      return 'Dato anterior: $valor';
+    }
+    return valor;
+  }
+
+  Widget _identificacionCuenta(PerfilUsuario perfil) {
+    return Center(
+      child: Column(
+        children: [
+          Container(
+            width: 105,
+            height: 105,
+            decoration: const BoxDecoration(
+              color: Color(0xFFEAF2FF),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.person_rounded,
+              size: 55,
+              color: AppTheme.primary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            perfil.nombreCompleto.isEmpty
+                ? 'Usuario Lapticon'
+                : perfil.nombreCompleto,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            perfil.correo,
+            style: const TextStyle(color: AppTheme.textSecondary),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -314,9 +287,7 @@ class _FilaDato extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(17),
-        border: Border.all(
-          color: const Color(0xFFEAECF0),
-        ),
+        border: Border.all(color: const Color(0xFFEAECF0)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -328,10 +299,7 @@ class _FilaDato extends StatelessWidget {
               color: const Color(0xFFEAF2FF),
               borderRadius: BorderRadius.circular(13),
             ),
-            child: Icon(
-              icono,
-              color: AppTheme.primary,
-            ),
+            child: Icon(icono, color: AppTheme.primary),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -367,10 +335,7 @@ class _FilaDato extends StatelessWidget {
 
 /// Aviso que se muestra cuando el perfil no se pudo cargar.
 class _MensajeDeError extends StatelessWidget {
-  const _MensajeDeError({
-    required this.mensaje,
-    required this.onReintentar,
-  });
+  const _MensajeDeError({required this.mensaje, required this.onReintentar});
 
   final String mensaje;
   final VoidCallback onReintentar;
@@ -386,19 +351,12 @@ class _MensajeDeError extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Icon(
-            Icons.info_outline,
-            color: Color(0xFFD97706),
-            size: 34,
-          ),
+          const Icon(Icons.info_outline, color: Color(0xFFD97706), size: 34),
           const SizedBox(height: 12),
           Text(
             mensaje,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
-              height: 1.4,
-            ),
+            style: const TextStyle(color: AppTheme.textPrimary, height: 1.4),
           ),
           const SizedBox(height: 16),
           OutlinedButton.icon(

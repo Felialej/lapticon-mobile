@@ -1,17 +1,34 @@
-# lapticon_mobile
+# LAPTICON
 
-A new Flutter project.
+LAPTICON es una aplicación móvil que desarrollamos para la asignatura Computación Móvil. Su objetivo es conectar a personas que necesitan enviar encomiendas con viajeros que se desplazan entre ciudades.
 
-## Getting Started
+Desde una misma cuenta se puede usar el modo Remitente para publicar una encomienda o el modo Viajero para buscarla y aceptarla.
 
-This project is a starting point for a Flutter application.
+## Funcionalidades principales
 
-A few resources to get you started if this is your first Flutter project:
+- Registro de usuarios e inicio de sesión.
+- Consulta y actualización del perfil.
+- Selección y cambio entre los modos Remitente y Viajero.
+- Publicación y seguimiento de encomiendas.
+- Registro, consulta y búsqueda de viajes.
+- Búsqueda de encomiendas por ciudad de origen y destino.
+- Aceptación de encomiendas, consulta de las tomadas y confirmación de entrega.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Tecnologías utilizadas
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+La aplicación está desarrollada en Flutter y Dart. Para el inicio de sesión utilizamos Firebase Authentication mediante su API REST. El backend REST de LAPTICON gestiona los perfiles, los viajes y las encomiendas, y proporciona los catálogos de ciudades y países.
+
+## Estructura del proyecto
+
+El código sigue el patrón MVC y se organiza en estas carpetas dentro de `lib/`.
+
+- `models` contiene los modelos de datos.
+- `views` contiene las pantallas y sus componentes.
+- `controllers` gestiona las validaciones, el estado y las operaciones.
+- `services` se comunica con las API.
+
+La configuración, los estilos y las utilidades están en `config`, `theme` y `utils`.
+
+## Ejecución
+
+Se necesita tener Flutter instalado, un emulador o dispositivo Android configurado y conexión a internet.

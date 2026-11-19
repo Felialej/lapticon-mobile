@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../controllers/registrar_encomienda_controller.dart';
 import '../theme/app_theme.dart';
+import '../utils/validadores.dart';
+import 'widgets/busqueda_por_ruta.dart';
+import 'widgets/formateadores_entrada.dart';
 
 class RegistrarEncomiendaView extends StatefulWidget {
   const RegistrarEncomiendaView({
@@ -25,6 +28,12 @@ class _RegistrarEncomiendaViewState
 
   final RegistrarEncomiendaController _controller =
       RegistrarEncomiendaController();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.cargarCiudades();
+  }
 
   @override
   void dispose() {
@@ -118,45 +127,30 @@ class _RegistrarEncomiendaViewState
                     crossAxisAlignment:
                         CrossAxisAlignment.start,
                     children: [
-                      const _Etiqueta(
-                        texto: 'Ciudad de origen',
-                      ),
-
-                      DropdownButtonFormField<String>(
-                        initialValue: _controller.origen,
-                        decoration: const InputDecoration(
-                          hintText: 'Selecciona el origen',
-                          prefixIcon: Icon(
-                            Icons.location_on_outlined,
-                          ),
+                      if (_controller.cargandoCiudades)
+                        const Center(child: CircularProgressIndicator())
+                      else if (_controller.errorCiudades case final mensaje?)
+                        ErrorCatalogoCiudades(
+                          mensaje: mensaje,
+                          onReintentar: _controller.cargarCiudades,
+                        )
+                      else ...[
+                        SelectorCiudad(
+                          etiqueta: 'Ciudad de origen',
+                          icono: Icons.location_on_outlined,
+                          ciudades: _controller.ciudades,
+                          seleccionar: _controller.seleccionarOrigen,
+                          validar: _controller.validarOrigen,
                         ),
-                        items: _opcionesDeCiudad(),
-                        onChanged:
-                            _controller.seleccionarOrigen,
-                        validator:
-                            _controller.validarCiudad,
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      const _Etiqueta(
-                        texto: 'Ciudad de destino',
-                      ),
-
-                      DropdownButtonFormField<String>(
-                        initialValue: _controller.destino,
-                        decoration: const InputDecoration(
-                          hintText: 'Selecciona el destino',
-                          prefixIcon: Icon(
-                            Icons.location_on_outlined,
-                          ),
+                        const SizedBox(height: 20),
+                        SelectorCiudad(
+                          etiqueta: 'Ciudad de destino',
+                          icono: Icons.location_on_outlined,
+                          ciudades: _controller.ciudades,
+                          seleccionar: _controller.seleccionarDestino,
+                          validar: _controller.validarDestino,
                         ),
-                        items: _opcionesDeCiudad(),
-                        onChanged:
-                            _controller.seleccionarDestino,
-                        validator:
-                            _controller.validarCiudad,
-                      ),
+                      ],
 
                       const SizedBox(height: 20),
 
@@ -201,12 +195,15 @@ class _RegistrarEncomiendaViewState
 
                       TextFormField(
                         controller: _valorController,
+                        inputFormatters: const [FormateadorValorColombiano()],
                         keyboardType:
                             const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
                         decoration: const InputDecoration(
                           hintText: 'Ejemplo: 10',
+                          helperText: mensajeMaximoValorDeclarado,
+                          helperMaxLines: 2,
                           prefixIcon: Icon(
                             Icons.attach_money,
                           ),
@@ -216,24 +213,6 @@ class _RegistrarEncomiendaViewState
                     ],
                   );
                 },
-              ),
-
-              const SizedBox(height: 22),
-
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEAF2FF),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Text(
-                  'La disponibilidad depende del backend.',
-                  style: TextStyle(
-                    color: AppTheme.secondary,
-                    fontSize: 13,
-                  ),
-                ),
               ),
 
               const SizedBox(height: 26),
@@ -268,17 +247,6 @@ class _RegistrarEncomiendaViewState
         ),
       ),
     );
-  }
-
-  List<DropdownMenuItem<String>> _opcionesDeCiudad() {
-    return RegistrarEncomiendaController.ciudadesDisponibles
-        .map(
-          (ciudad) => DropdownMenuItem<String>(
-            value: ciudad,
-            child: Text(ciudad),
-          ),
-        )
-        .toList();
   }
 
   List<DropdownMenuItem<String>> _opcionesDeMoneda() {

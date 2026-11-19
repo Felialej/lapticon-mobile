@@ -1,27 +1,24 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/viaje.dart';
+import '../services/ciudades_service.dart';
 import '../services/viajes_service.dart';
+
+import 'catalogo_ciudades.dart';
 
 /// Controlador del formulario de registro de viaje.
 ///
 /// Administra los valores seleccionados, las validaciones y el registro
 /// del viaje mediante el servicio correspondiente.
-class RegistrarViajeController extends ChangeNotifier {
+class RegistrarViajeController extends ChangeNotifier with CatalogoCiudades {
   RegistrarViajeController({
     ViajesService? viajesService,
-  }) : _viajesService = viajesService ?? ViajesService();
+    CiudadesService? ciudadesService,
+  }) : _viajesService = viajesService ?? ViajesService() {
+    servicioCiudades = ciudadesService ?? CiudadesService();
+  }
 
   final ViajesService _viajesService;
-
-  static const List<String> ciudadesDisponibles = [
-    'Bogota',
-    'Medellin',
-    'Cali',
-    'Madrid',
-    'Paris',
-    'Miami',
-  ];
 
   String? _origen;
   String? _destino;
@@ -79,15 +76,18 @@ class RegistrarViajeController extends ChangeNotifier {
     return null;
   }
 
-  String? validarCiudad(String? valor) {
-    if (valor == null) {
-      return 'Selecciona una ciudad';
-    }
+  String? validarOrigen() => _validarCiudad(_origen);
 
-    return null;
-  }
+  String? validarDestino() => _validarCiudad(_destino);
+
+  String? _validarCiudad(String? valor) =>
+      valor == null ? 'Selecciona una ciudad del catálogo.' : null;
 
   String? validarSeleccion() {
+    if (_origen == null || _destino == null) {
+      return 'Selecciona las ciudades de origen y destino';
+    }
+
     if (_fecha == null) {
       return 'Selecciona la fecha del viaje';
     }

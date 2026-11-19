@@ -17,11 +17,13 @@ String? validarTextoObligatorio(String? valor, String nombreCampo) {
   return null;
 }
 
-/// Comprueba que el teléfono tenga contenido y esté formado solo por números.
-String? validarTelefono(String? valor) {
-  final telefono = valor?.trim() ?? '';
+const maximoDigitosTelefono = 10;
 
-  if (telefono.isEmpty) {
+/// Comprueba que el teléfono contenga entre 7 y 10 dígitos.
+String? validarTelefono(String? valor) {
+  final telefono = valor ?? '';
+
+  if (telefono.trim().isEmpty) {
     return 'Ingresa tu teléfono';
   }
 
@@ -33,8 +35,20 @@ String? validarTelefono(String? valor) {
     return 'El teléfono es demasiado corto';
   }
 
+  if (telefono.length > maximoDigitosTelefono) {
+    return 'El teléfono puede tener máximo $maximoDigitosTelefono dígitos';
+  }
+
   return null;
 }
 
 /// Expresión que acepta únicamente dígitos del 0 al 9.
 final RegExp _soloNumeros = RegExp(r'^[0-9]+$');
+
+const maximoDigitosValorDeclarado = 13;
+const mensajeMaximoValorDeclarado =
+    'Máximo $maximoDigitosValorDeclarado dígitos, incluidos los decimales.';
+
+bool superaMaximoValorDeclarado(String texto) =>
+    texto.replaceAll('.', '').replaceAll(',', '').length >
+    maximoDigitosValorDeclarado;

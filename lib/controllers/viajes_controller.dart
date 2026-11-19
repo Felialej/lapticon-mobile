@@ -46,8 +46,6 @@ class ViajesController extends ChangeNotifier {
   );
 }
 
-  int get cantidad => _viajes.length;
-
   bool get estaVacio => _viajes.isEmpty;
 
   bool get cargando => _cargando;

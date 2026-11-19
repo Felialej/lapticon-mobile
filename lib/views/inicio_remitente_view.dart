@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 
+import '../models/modo_usuario.dart';
 import '../theme/app_theme.dart';
+import 'widgets/estilo_modo.dart';
 
 class InicioRemitenteView extends StatelessWidget {
   const InicioRemitenteView({
     super.key,
     required this.onPublicarEncomienda,
-    required this.onVerEncomiendas,
     required this.onBuscarViajeros,
   });
 
   final VoidCallback onPublicarEncomienda;
-  final VoidCallback onVerEncomiendas;
   final VoidCallback onBuscarViajeros;
 
   @override
@@ -22,88 +22,16 @@ class InicioRemitenteView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(
-                    Icons.inventory_2_outlined,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Lapticon',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.primary,
-                        ),
-                      ),
-                      Text(
-                        'Modo remitente',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(
-                  Icons.notifications_none_rounded,
-                  color: AppTheme.textPrimary,
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 20),
-
-            const Text(
-              'Gestiona tus encomiendas de forma sencilla.',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            const Text(
-              'Hola, remitente',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimary,
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            const Text(
-              'Envía con personas que ya van a tu destino.',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
-              ),
-            ),
-
-            const SizedBox(height: 22),
-
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: AppTheme.primary,
-                borderRadius: BorderRadius.circular(22),
+                gradient: LinearGradient(
+                  colors: [AppTheme.primary, ModoUsuario.remitente.acento],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(24),
               ),
               child: Column(
                 crossAxisAlignment:
@@ -147,7 +75,7 @@ class InicioRemitenteView extends StatelessWidget {
                     child: FilledButton(
                       style: FilledButton.styleFrom(
                         backgroundColor: Colors.white,
-                        foregroundColor: AppTheme.primary,
+                        foregroundColor: ModoUsuario.remitente.acento,
                         minimumSize: const Size(0, 48),
                       ),
                       onPressed: onPublicarEncomienda,
@@ -165,7 +93,7 @@ class InicioRemitenteView extends StatelessWidget {
             const Text(
               'Accesos rápidos',
               style: TextStyle(
-                fontSize: 19,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: AppTheme.textPrimary,
               ),
@@ -173,14 +101,6 @@ class InicioRemitenteView extends StatelessWidget {
 
             const SizedBox(height: 14),
 
-            _TarjetaAcceso(
-              icono: Icons.inventory_2_outlined,
-              titulo: 'Mis encomiendas',
-              subtitulo: 'Consulta tus publicaciones',
-              onTap: onVerEncomiendas,
-            ),
-
-            const SizedBox(height: 12),
 
             _TarjetaAcceso(
               icono: Icons.search,
@@ -224,12 +144,12 @@ class _TarjetaAcceso extends StatelessWidget {
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEAF2FF),
+                  color: ModoUsuario.remitente.fondo,
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Icon(
                   icono,
-                  color: AppTheme.primary,
+                  color: ModoUsuario.remitente.acento,
                   size: 25,
                 ),
               ),

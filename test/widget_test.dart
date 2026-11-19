@@ -106,6 +106,7 @@ void main() {
                 modoSeleccionado: modoSeleccionado,
                 onSeleccionar: (modo) => setState(() => modoSeleccionado = modo),
                 onContinuar: () {},
+                onCerrarSesion: () {},
               ),
             ),
           ),

@@ -35,15 +35,6 @@ class SeguimientoEncomiendaView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Consulta el mismo estado que ve el viajero.',
-              style: TextStyle(
-                color: AppTheme.textSecondary,
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -157,18 +148,17 @@ class SeguimientoEncomiendaView extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 18),
-
-            Text(
-              vencida
-                  ? 'La encomienda venció antes de que un viajero la tomara.'
-                  : 'El viajero actualiza los estados "tomada" y "recibida".',
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppTheme.textSecondary,
-                height: 1.4,
+            if (vencida) ...[
+              const SizedBox(height: 18),
+              const Text(
+                'La encomienda venció antes de que un viajero la tomara.',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppTheme.textSecondary,
+                  height: 1.4,
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),

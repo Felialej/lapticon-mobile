@@ -11,11 +11,13 @@ class SeleccionModoView extends StatelessWidget {
     required this.modoSeleccionado,
     required this.onSeleccionar,
     required this.onContinuar,
+    required this.onCerrarSesion,
   });
 
   final ModoUsuario? modoSeleccionado;
   final ValueChanged<ModoUsuario> onSeleccionar;
   final VoidCallback onContinuar;
+  final VoidCallback onCerrarSesion;
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +25,14 @@ class SeleccionModoView extends StatelessWidget {
       titulo: '¿Cómo usarás Lapticon?',
       subtitulo: 'Selecciona qué quieres hacer hoy.',
       separacionTarjeta: 11,
-      nota: 'Selecciona un modo para ver sus funciones.',
+      accionEncabezado: PopupMenuButton<bool>(
+        tooltip: 'Opciones de sesión',
+        icon: const Icon(Icons.more_vert, color: Colors.white),
+        onSelected: (_) => onCerrarSesion(),
+        itemBuilder: (context) => const [
+          PopupMenuItem(value: true, child: Text('Cerrar sesión')),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

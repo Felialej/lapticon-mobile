@@ -10,11 +10,15 @@ import '../config/api_config.dart';
 class CiudadesService {
   /// Devuelve los nombres de las ciudades admitidas para origen y destino.
   ///
-  /// `GET /api/ciudades/ciudades` responde una lista plana de cadenas, por
-  /// ejemplo `["Abbotsford", "Aberdeen", ...]`.
-  Future<List<String>> obtenerCiudades() async {
+  /// `GET /api/ciudades/ciudades` responde una lista plana de nombres.
+  Future<List<String>> obtenerCiudades() => _obtenerNombres('ciudades');
+
+  /// Devuelve los nombres exactos de `GET /api/ciudades/paises`.
+  Future<List<String>> obtenerPaises() => _obtenerNombres('paises');
+
+  Future<List<String>> _obtenerNombres(String catalogo) async {
     final respuesta = await http.get(
-      Uri.parse('${ApiConfig.backendUrl}/api/ciudades/ciudades'),
+      Uri.parse('${ApiConfig.backendUrl}/api/ciudades/$catalogo'),
       headers: {
         'Accept': 'application/json',
       },
@@ -22,12 +26,17 @@ class CiudadesService {
 
     if (respuesta.statusCode != 200) {
       throw Exception(
-        'Error al obtener las ciudades: ${respuesta.statusCode}',
+        'Error al obtener el catálogo de $catalogo: ${respuesta.statusCode}',
       );
     }
 
-    final lista = jsonDecode(respuesta.body) as List<dynamic>;
+    final lista = jsonDecode(utf8.decode(respuesta.bodyBytes)) as List<dynamic>;
 
-    return lista.map((ciudad) => ciudad.toString()).toList();
+    return lista
+        .whereType<String>()
+        .where((ciudad) => ciudad.trim().isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
   }
 }
