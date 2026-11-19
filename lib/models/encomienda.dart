@@ -1,3 +1,5 @@
+import '../utils/formato_monetario.dart';
+
 enum EstadoEncomienda {
   disponible(
     valor: 'disponible',
@@ -58,9 +60,11 @@ class Encomienda {
     required this.valor,
     this.id,
     this.estado = EstadoEncomienda.disponible,
+    this.remitenteNombre,
   });
 
   factory Encomienda.desdeJson(Map<String, dynamic> json) {
+    final remitenteNombre = json['remitenteNombre'];
     return Encomienda(
       id: json['_id']?.toString(),
       ciudadOrigen: json['ciudadOrigen']?.toString() ?? '',
@@ -68,9 +72,10 @@ class Encomienda {
       observaciones: json['observaciones']?.toString() ?? '',
       moneda: json['moneda']?.toString() ?? '',
       valor: double.tryParse(json['valor']?.toString() ?? '') ?? 0,
-      estado: EstadoEncomienda.desdeTexto(
-        json['estado']?.toString() ?? '',
-      ),
+      estado: EstadoEncomienda.desdeTexto(json['estado']?.toString() ?? ''),
+      remitenteNombre: remitenteNombre is String
+          ? remitenteNombre.trim()
+          : null,
     );
   }
 
@@ -81,14 +86,11 @@ class Encomienda {
   final String moneda;
   final double valor;
   final EstadoEncomienda estado;
+  final String? remitenteNombre;
 
   String get ruta => '$ciudadOrigen → $ciudadDestino';
 
-  String get valorConMoneda {
-    final entero = valor == valor.roundToDouble();
-
-    return '$moneda ${entero ? valor.toStringAsFixed(0) : valor.toStringAsFixed(2)}';
-  }
+  String get valorConMoneda => '$moneda ${formatearValorColombiano(valor)}';
 
   Map<String, dynamic> toJson() {
     return {

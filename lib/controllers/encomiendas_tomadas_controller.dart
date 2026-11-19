@@ -4,26 +4,25 @@ import '../models/encomienda.dart';
 import '../services/ciudades_service.dart';
 import '../services/encomiendas_service.dart';
 
+import 'catalogo_ciudades.dart';
+
 /// Filtros y resultados de las encomiendas tomadas del viajero autenticado.
-class EncomiendasTomadasController extends ChangeNotifier {
+class EncomiendasTomadasController extends ChangeNotifier with CatalogoCiudades {
   EncomiendasTomadasController({
     required this.idToken,
     CiudadesService? ciudadesService,
     EncomiendasService? encomiendasService,
-  }) : _ciudadesService = ciudadesService ?? CiudadesService(),
-       _encomiendasService = encomiendasService ?? EncomiendasService();
+  }) : _encomiendasService = encomiendasService ?? EncomiendasService() {
+    servicioCiudades = ciudadesService ?? CiudadesService();
+  }
 
   final String idToken;
-  final CiudadesService _ciudadesService;
   final EncomiendasService _encomiendasService;
 
-  List<String> _ciudades = [];
   List<Encomienda> _resultados = [];
   String? _origen;
   String? _destino;
-  String? _errorCiudades;
   String? _errorBusqueda;
-  bool _cargandoCiudades = false;
   bool _buscando = false;
   bool _busquedaRealizada = false;
   String? _entregandoId;
@@ -31,63 +30,23 @@ class EncomiendasTomadasController extends ChangeNotifier {
   int _versionBusqueda = 0;
   bool _disposed = false;
 
-  List<String> get ciudades => List.unmodifiable(_ciudades);
   List<Encomienda> get resultados => List.unmodifiable(_resultados);
   String? get origen => _origen;
   String? get destino => _destino;
-  String? get errorCiudades => _errorCiudades;
   String? get errorBusqueda => _errorBusqueda;
-  bool get cargandoCiudades => _cargandoCiudades;
   bool get buscando => _buscando;
   bool get busquedaRealizada => _busquedaRealizada;
   String? get entregandoId => _entregandoId;
   bool get confirmandoEntrega => _entregandoId != null;
   String? get errorEntrega => _errorEntrega;
 
-  Future<void> cargarCiudades() async {
-    _cargandoCiudades = true;
-    _errorCiudades = null;
-    notifyListeners();
-    try {
-      final recibidas = [
-        ...await _ciudadesService.obtenerCiudades(),
-        'Bogota',
-        'Medellin',
-        'Cali',
-        'Madrid',
-        'Paris',
-        'Miami',
-      ];
-      if (_disposed) return;
-      _ciudades =
-          recibidas
-              .map((ciudad) => ciudad.trim())
-              .where((ciudad) => ciudad.isNotEmpty)
-              .toSet()
-              .toList()
-            ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-      if (_ciudades.isEmpty) {
-        _errorCiudades = 'El catálogo de ciudades está vacío.';
-      }
-    } catch (_) {
-      if (_disposed) return;
-      _errorCiudades =
-          'No fue posible cargar las ciudades. Revisa tu conexión.';
-    } finally {
-      if (!_disposed) {
-        _cargandoCiudades = false;
-        notifyListeners();
-      }
-    }
-  }
-
   void seleccionarOrigen(String? ciudad) {
-    _origen = _ciudades.contains(ciudad) ? ciudad : null;
+    _origen = ciudades.contains(ciudad) ? ciudad : null;
     _limpiarBusqueda();
   }
 
   void seleccionarDestino(String? ciudad) {
-    _destino = _ciudades.contains(ciudad) ? ciudad : null;
+    _destino = ciudades.contains(ciudad) ? ciudad : null;
     _limpiarBusqueda();
   }
 
@@ -138,6 +97,7 @@ class EncomiendasTomadasController extends ChangeNotifier {
             moneda: original.moneda,
             valor: original.valor,
             estado: EstadoEncomienda.recibida,
+            remitenteNombre: original.remitenteNombre,
           );
         }
       }

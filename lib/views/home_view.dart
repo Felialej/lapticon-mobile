@@ -2,28 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 
-/// Pestaña de inicio con el resumen y los accesos rápidos.
-///
-/// Es una vista sin estado: recibe el dato que muestra y las acciones que
-/// ejecuta, de modo que no necesita controlador propio.
+/// Pestaña de inicio de Viajero.
 class HomeView extends StatelessWidget {
   const HomeView({
     super.key,
-    required this.cantidadViajes,
     required this.onRegistrarViaje,
-    required this.onVerViajes,
     required this.onVerEncomiendasTomadas,
     required this.onBuscarEncomiendas,
   });
 
-  /// Total de viajes registrados, tomado del controlador de viajes.
-  final int cantidadViajes;
-
   /// Acción que abre el formulario de registro de viaje.
   final VoidCallback onRegistrarViaje;
 
-  /// Acción que cambia a la pestaña de viajes.
-  final VoidCallback onVerViajes;
   final VoidCallback onVerEncomiendasTomadas;
   final VoidCallback onBuscarEncomiendas;
 
@@ -40,63 +30,6 @@ class HomeView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Encabezado con la marca y el acceso a notificaciones.
-            Row(
-              children: [
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary,
-                    borderRadius:
-                        BorderRadius.circular(14),
-                  ),
-                  child: const Icon(
-                    Icons.flight_rounded,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Lapticon',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
-                        ),
-                      ),
-                      Text(
-                        'Viaja y conecta',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.notifications_none_rounded,
-                    color: AppTheme.primary,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 28),
-
             // Tarjeta destacada que invita a registrar un viaje.
             Container(
               width: double.infinity,
@@ -104,8 +37,8 @@ class HomeView extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [
-                    Color(0xFF163A69),
-                    Color(0xFF2F80ED),
+                    AppTheme.primary,
+                    Color(0xFF205CA9),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -138,7 +71,7 @@ class HomeView extends StatelessWidget {
                         CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Tu próxima ruta\nempieza aquí',
+                        'Registra tu próximo viaje',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 27,
@@ -150,7 +83,7 @@ class HomeView extends StatelessWidget {
                       const SizedBox(
                         width: 230,
                         child: Text(
-                          'Registra tu viaje y encuentra oportunidades en tu ruta.',
+                          'Busca encomiendas que puedas llevar en tu ruta.',
                           style: TextStyle(
                             color: Color(0xFFE7EEF8),
                             fontSize: 14,
@@ -180,54 +113,16 @@ class HomeView extends StatelessWidget {
 
             const SizedBox(height: 30),
 
-            // Título de la sección de accesos, con el contador de viajes.
-            Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Mis opciones',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-                if (cantidadViajes > 0)
-                  Text(
-                    '$cantidadViajes viaje(s)',
-                    style: const TextStyle(
-                      color: AppTheme.secondary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-              ],
+            const Text(
+              'Accesos rápidos',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+              ),
             ),
 
             const SizedBox(height: 14),
-
-            _ActionCard(
-              icon: Icons.flight_takeoff_rounded,
-              iconColor: AppTheme.secondary,
-              title: 'Registrar viaje',
-              subtitle:
-                  'Agrega los datos de tu próximo vuelo',
-              onTap: onRegistrarViaje,
-            ),
-
-            const SizedBox(height: 12),
-
-            _ActionCard(
-              icon: Icons.luggage_outlined,
-              iconColor: const Color(0xFF7F56D9),
-              title: 'Mis viajes',
-              subtitle: cantidadViajes == 0
-                  ? 'Todavía no tienes viajes registrados'
-                  : '$cantidadViajes viaje(s) registrado(s)',
-              onTap: onVerViajes,
-            ),
-
-            const SizedBox(height: 12),
 
             _ActionCard(
               icon: Icons.search_outlined,
@@ -245,37 +140,6 @@ class HomeView extends StatelessWidget {
               title: 'Encomiendas tomadas',
               subtitle: 'Consulta las encomiendas aceptadas por ruta',
               onTap: onVerEncomiendasTomadas,
-            ),
-
-            const SizedBox(height: 26),
-
-            // Recordatorio sobre el uso correcto del registro de viajes.
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEAF2FF),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: const Row(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: AppTheme.secondary,
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Registra únicamente vuelos que realmente vayas a realizar.',
-                      style: TextStyle(
-                        color: AppTheme.textPrimary,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ),
           ],
         ),

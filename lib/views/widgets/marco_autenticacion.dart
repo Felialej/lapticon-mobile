@@ -13,14 +13,14 @@ class MarcoAutenticacion extends StatelessWidget {
     required this.subtitulo,
     required this.child,
     this.separacionTarjeta = 26,
-    this.nota = 'Tu cuenta se protege con Firebase Authentication',
+    this.accionEncabezado,
   });
 
   final String titulo;
   final String subtitulo;
   final Widget child;
   final double separacionTarjeta;
-  final String nota;
+  final Widget? accionEncabezado;
 
   static const _degradado = LinearGradient(
     colors: [AppTheme.primary, AppTheme.secondary],
@@ -71,14 +71,24 @@ class MarcoAutenticacion extends StatelessWidget {
                         Center(
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 456),
-                            child: Padding(
-                              padding: EdgeInsets.fromLTRB(
-                                26,
-                                52,
-                                26,
-                                separacionTarjeta,
-                              ),
-                              child: const _Encabezado(),
+                            child: Stack(
+                              children: [
+                                Padding(
+                                  padding: EdgeInsets.fromLTRB(
+                                    26,
+                                    52,
+                                    26,
+                                    separacionTarjeta,
+                                  ),
+                                  child: const _Encabezado(),
+                                ),
+                                if (accionEncabezado case final accion?)
+                                  PositionedDirectional(
+                                    top: 0,
+                                    end: 14,
+                                    child: accion,
+                                  ),
+                              ],
                             ),
                           ),
                         ),
@@ -124,16 +134,6 @@ class MarcoAutenticacion extends StatelessWidget {
                                     ),
                                     const SizedBox(height: 28),
                                     child,
-                                    const SizedBox(height: 10),
-                                    Text(
-                                      nota,
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        color: AppTheme.textSecondary,
-                                        fontSize: 11,
-                                        height: 1.5,
-                                      ),
-                                    ),
                                   ],
                                 ),
                               ),

@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import '../controllers/buscar_encomiendas_controller.dart';
 import '../models/encomienda.dart';
 import '../theme/app_theme.dart';
-import 'widgets/etiqueta_estado.dart';
 import 'detalle_encomienda_view.dart';
+import 'widgets/busqueda_por_ruta.dart';
+import 'widgets/etiqueta_estado.dart';
 
 /// HU-12: búsqueda de encomiendas disponibles para un viajero.
 class BuscarEncomiendasView extends StatefulWidget {
@@ -52,24 +53,9 @@ class _BuscarEncomiendasViewState extends State<BuscarEncomiendasView> {
               return const Center(child: CircularProgressIndicator());
             }
             if (_controller.errorCiudades != null) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _controller.errorCiudades!,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 14),
-                      OutlinedButton(
-                        onPressed: _controller.cargarCiudades,
-                        child: const Text('Reintentar'),
-                      ),
-                    ],
-                  ),
-                ),
+              return ErrorCatalogoCiudades(
+                mensaje: _controller.errorCiudades!,
+                onReintentar: _controller.cargarCiudades,
               );
             }
 
@@ -97,16 +83,18 @@ class _BuscarEncomiendasViewState extends State<BuscarEncomiendasView> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _selectorCiudad(
+                        SelectorCiudad(
                           etiqueta: 'Ciudad de origen',
                           icono: Icons.flight_takeoff,
+                          ciudades: _controller.ciudades,
                           seleccionar: _controller.seleccionarOrigen,
                           validar: _controller.validarOrigen,
                         ),
                         const SizedBox(height: 16),
-                        _selectorCiudad(
+                        SelectorCiudad(
                           etiqueta: 'Ciudad de destino',
                           icono: Icons.flight_land,
+                          ciudades: _controller.ciudades,
                           seleccionar: _controller.seleccionarDestino,
                           validar: _controller.validarDestino,
                         ),
@@ -156,46 +144,6 @@ class _BuscarEncomiendasViewState extends State<BuscarEncomiendasView> {
           },
         ),
       ),
-    );
-  }
-
-  Widget _selectorCiudad({
-    required String etiqueta,
-    required IconData icono,
-    required ValueChanged<String?> seleccionar,
-    required String? Function() validar,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(etiqueta, style: const TextStyle(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
-        Autocomplete<String>(
-          optionsBuilder: (valor) {
-            final consulta = valor.text.trim().toLowerCase();
-            if (consulta.length < 2) {
-              return const Iterable<String>.empty();
-            }
-            return _controller.ciudades
-                .where((ciudad) => ciudad.toLowerCase().contains(consulta))
-                .take(12);
-          },
-          onSelected: seleccionar,
-          fieldViewBuilder: (context, texto, foco, _) {
-            return TextFormField(
-              controller: texto,
-              focusNode: foco,
-              onChanged: (_) => seleccionar(null),
-              validator: (_) => validar(),
-              decoration: InputDecoration(
-                hintText: 'Escribe al menos 2 letras',
-                prefixIcon: Icon(icono),
-                suffixIcon: const Icon(Icons.arrow_drop_down),
-              ),
-            );
-          },
-        ),
-      ],
     );
   }
 

@@ -55,11 +55,12 @@ class MisViajesView extends StatelessWidget {
                     ],
                   ),
                 ),
-                IconButton.filled(
-                  onPressed: onRegistrarViaje,
-                  icon: const Icon(Icons.add),
-                  tooltip: 'Registrar viaje',
-                ),
+                if (viajes.isNotEmpty)
+                  IconButton.filled(
+                    onPressed: onRegistrarViaje,
+                    icon: const Icon(Icons.add),
+                    tooltip: 'Registrar viaje',
+                  ),
               ],
             ),
           ),

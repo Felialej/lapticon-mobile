@@ -27,15 +27,8 @@ class SelectorCiudad extends StatelessWidget {
         Text(etiqueta, style: const TextStyle(fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         Autocomplete<String>(
-          optionsBuilder: (valor) {
-            final consulta = valor.text.trim().toLowerCase();
-            if (consulta.length < 2) {
-              return const Iterable<String>.empty();
-            }
-            return ciudades
-                .where((ciudad) => ciudad.toLowerCase().contains(consulta))
-                .take(12);
-          },
+          optionsViewOpenDirection: OptionsViewOpenDirection.mostSpace,
+          optionsBuilder: (valor) => _buscarCiudades(valor.text),
           onSelected: seleccionar,
           fieldViewBuilder: (context, texto, foco, _) {
             return TextFormField(
@@ -46,13 +39,51 @@ class SelectorCiudad extends StatelessWidget {
               decoration: InputDecoration(
                 hintText: 'Escribe al menos 2 letras',
                 prefixIcon: Icon(icono),
-                suffixIcon: const Icon(Icons.arrow_drop_down),
               ),
             );
           },
         ),
       ],
     );
+  }
+
+  Iterable<String> _buscarCiudades(String texto) {
+    final consulta = _normalizar(texto);
+    if (consulta.length < 2) return const [];
+
+    final coincidencias = <({String ciudad, String nombre, int prioridad})>[];
+    for (final ciudad in ciudades) {
+      final nombre = _normalizar(ciudad);
+      if (!nombre.contains(consulta)) continue;
+      final prioridad = nombre == consulta
+          ? 0
+          : (nombre.startsWith(consulta) ? 1 : 2);
+      coincidencias.add((ciudad: ciudad, nombre: nombre, prioridad: prioridad));
+    }
+    coincidencias.sort((a, b) {
+      final prioridad = a.prioridad.compareTo(b.prioridad);
+      return prioridad == 0 ? a.nombre.compareTo(b.nombre) : prioridad;
+    });
+    return coincidencias.map((opcion) => opcion.ciudad);
+  }
+
+  static final _variantes = {
+    RegExp(r'[\u0300-\u036f]'): '',
+    RegExp('[áàâäãå]'): 'a',
+    RegExp('[éèêë]'): 'e',
+    RegExp('[íìîï]'): 'i',
+    RegExp('[óòôöõ]'): 'o',
+    RegExp('[úùûü]'): 'u',
+    RegExp('ñ'): 'n',
+    RegExp('ç'): 'c',
+  };
+
+  static String _normalizar(String texto) {
+    var nombre = texto.trim().toLowerCase();
+    for (final variante in _variantes.entries) {
+      nombre = nombre.replaceAll(variante.key, variante.value);
+    }
+    return nombre;
   }
 }
 

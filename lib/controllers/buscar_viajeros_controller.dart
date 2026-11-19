@@ -4,72 +4,41 @@ import '../models/viaje_disponible.dart';
 import '../services/ciudades_service.dart';
 import '../services/viajes_service.dart';
 
+import 'catalogo_ciudades.dart';
+
 /// Estado y validaciones de la búsqueda de viajes como remitente.
-class BuscarViajerosController extends ChangeNotifier {
+class BuscarViajerosController extends ChangeNotifier with CatalogoCiudades {
   BuscarViajerosController({
     CiudadesService? ciudadesService,
     ViajesService? viajesService,
-  })  : _ciudadesService = ciudadesService ?? CiudadesService(),
-        _viajesService = viajesService ?? ViajesService();
+  }) : _viajesService = viajesService ?? ViajesService() {
+    servicioCiudades = ciudadesService ?? CiudadesService();
+  }
 
-  final CiudadesService _ciudadesService;
   final ViajesService _viajesService;
 
-  List<String> _ciudades = [];
   List<ViajeDisponible> _resultados = [];
   String? _origen;
   String? _destino;
-  String? _errorCiudades;
   String? _errorBusqueda;
-  bool _cargandoCiudades = false;
   bool _buscando = false;
   bool _busquedaRealizada = false;
   int _versionBusqueda = 0;
 
-  List<String> get ciudades => List.unmodifiable(_ciudades);
   List<ViajeDisponible> get resultados => List.unmodifiable(_resultados);
   String? get origen => _origen;
   String? get destino => _destino;
-  String? get errorCiudades => _errorCiudades;
   String? get errorBusqueda => _errorBusqueda;
-  bool get cargandoCiudades => _cargandoCiudades;
   bool get buscando => _buscando;
   bool get busquedaRealizada => _busquedaRealizada;
 
-  Future<void> cargarCiudades() async {
-    _cargandoCiudades = true;
-    _errorCiudades = null;
-    notifyListeners();
-
-    try {
-      final recibidas = await _ciudadesService.obtenerCiudades();
-      final unicas = recibidas
-          .map((ciudad) => ciudad.trim())
-          .where((ciudad) => ciudad.isNotEmpty)
-          .toSet()
-          .toList()
-        ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-
-      _ciudades = unicas;
-      if (_ciudades.isEmpty) {
-        _errorCiudades = 'El catálogo de ciudades está vacío.';
-      }
-    } catch (_) {
-      _errorCiudades =
-          'No fue posible cargar las ciudades. Revisa tu conexión.';
-    } finally {
-      _cargandoCiudades = false;
-      notifyListeners();
-    }
-  }
-
   void seleccionarOrigen(String? ciudad) {
-    _origen = _ciudades.contains(ciudad) ? ciudad : null;
+    _origen = ciudades.contains(ciudad) ? ciudad : null;
     _limpiarBusqueda();
   }
 
   void seleccionarDestino(String? ciudad) {
-    _destino = _ciudades.contains(ciudad) ? ciudad : null;
+    _destino = ciudades.contains(ciudad) ? ciudad : null;
     _limpiarBusqueda();
   }
 

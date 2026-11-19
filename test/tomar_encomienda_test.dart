@@ -1,11 +1,13 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:lapticon_mobile/controllers/tomar_encomienda_controller.dart';
 import 'package:lapticon_mobile/models/encomienda.dart';
-
+import 'package:lapticon_mobile/theme/app_theme.dart';
+import 'package:lapticon_mobile/views/detalle_encomienda_view.dart';
 
 const enc = Encomienda(
   id: 'enc-1',
@@ -17,6 +19,36 @@ const enc = Encomienda(
 );
 
 void main() {
+  testWidgets('Cancelar queda alineado con Aceptar y cierra el diálogo', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: const DetalleEncomiendaView(
+          encomienda: enc,
+          idToken: 'token-prueba',
+        ),
+      ),
+    );
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Tomar encomienda'));
+    await tester.pumpAndSettle();
+    final cancelar = find.widgetWithText(OutlinedButton, 'Cancelar');
+    final aceptar = find.widgetWithText(FilledButton, 'Aceptar');
+    expect(
+      tester.getCenter(cancelar).dy,
+      closeTo(tester.getCenter(aceptar).dy, 1),
+    );
+
+    await tester.tap(cancelar);
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.text('Disponible'), findsOneWidget);
+  });
+
   test('HU-13: PUT sin body ni uid y autenticado con Firebase', () async {
     await http.runWithClient(
       () async {

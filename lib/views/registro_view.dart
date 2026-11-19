@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../controllers/auth_controller.dart';
+import '../controllers/catalogo_paises_controller.dart';
 import '../theme/app_theme.dart';
 import '../utils/validadores.dart';
 import 'widgets/campos_formulario.dart';
 import 'widgets/formateadores_entrada.dart';
 import 'widgets/marco_autenticacion.dart';
+import 'widgets/selector_pais.dart';
 
 /// Pantalla de creación de cuenta.
 ///
@@ -30,9 +32,11 @@ class _RegistroViewState extends State<RegistroView> {
   final _nombreController = TextEditingController();
   final _apellidoController = TextEditingController();
   final _telefonoController = TextEditingController();
-  final _nacionalidadController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  final _catalogoPaises = CatalogoPaisesController();
+  String? _paisNacimiento;
 
   /// Fecha de nacimiento elegida en el calendario.
   ///
@@ -47,11 +51,17 @@ class _RegistroViewState extends State<RegistroView> {
   AuthController get _auth => widget.authController;
 
   @override
+  void initState() {
+    super.initState();
+    _catalogoPaises.cargar();
+  }
+
+  @override
   void dispose() {
     _nombreController.dispose();
     _apellidoController.dispose();
     _telefonoController.dispose();
-    _nacionalidadController.dispose();
+    _catalogoPaises.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -104,7 +114,7 @@ class _RegistroViewState extends State<RegistroView> {
       apellido: _apellidoController.text,
       telefono: _telefonoController.text,
       fechaNacimiento: _fechaNacimiento!,
-      nacionalidad: _nacionalidadController.text,
+      nacionalidad: _paisNacimiento!,
     );
 
     if (!mounted) {
@@ -263,13 +273,11 @@ class _RegistroViewState extends State<RegistroView> {
         usarTemaDeEntrada: true,
       ),
       const SizedBox(height: 18),
-      CampoTexto(
-        etiqueta: 'Nacionalidad',
-        controller: _nacionalidadController,
-        hintText: 'Ejemplo: Colombia',
-        icono: Icons.public_outlined,
-        textCapitalization: TextCapitalization.words,
-        validator: (valor) => validarTextoObligatorio(valor, 'nacionalidad'),
+      SelectorPais(
+        catalogo: _catalogoPaises,
+        seleccion: _paisNacimiento,
+        onSeleccionar: (pais) => setState(() => _paisNacimiento = pais),
+        validar: () => _catalogoPaises.validarPais(_paisNacimiento),
       ),
     ];
   }

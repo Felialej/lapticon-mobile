@@ -129,14 +129,7 @@ void main() {
           );
           addTearDown(controller.dispose);
           await controller.cargarCiudades();
-          expect(controller.ciudades, [
-            'Bogota',
-            'Cali',
-            'Madrid',
-            'Medellin',
-            'Miami',
-            'Paris',
-          ]);
+          expect(controller.ciudades, ['Bogota', 'Cali', 'Miami']);
           expect(controller.validarOrigen(), isNotNull);
           expect(controller.validarDestino(), isNotNull);
           await controller.buscar();
@@ -311,13 +304,13 @@ void main() {
         await _elegirCiudad(tester, 0, 'Bogota');
         await _elegirCiudad(tester, 1, 'Miami');
         await _pulsar(tester, buscar);
-        expect(find.text('Valor: USD 150.50'), findsOneWidget);
+        expect(find.text('Valor: USD 150,50'), findsOneWidget);
         expect(find.text('Bogota → Miami'), findsOneWidget);
         expect(find.text('Frágil'), findsOneWidget);
         expect(find.text('Tomada'), findsOneWidget);
         expect(find.textContaining('Disponible'), findsNothing);
         await _pulsar(tester, buscar);
-        expect(find.text('Valor: USD 150.50'), findsNothing);
+        expect(find.text('Valor: USD 150,50'), findsNothing);
         expect(
           find.text('No tienes encomiendas tomadas para esta ruta.'),
           findsOneWidget,

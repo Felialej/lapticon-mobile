@@ -8,6 +8,7 @@ import 'package:http/testing.dart';
 import 'package:lapticon_mobile/controllers/encomiendas_tomadas_controller.dart';
 import 'package:lapticon_mobile/models/encomienda.dart';
 import 'package:lapticon_mobile/services/encomiendas_service.dart';
+import 'package:lapticon_mobile/views/contacto_remitente_view.dart';
 import 'package:lapticon_mobile/views/encomiendas_tomadas_view.dart';
 
 const _tomada = {
@@ -18,6 +19,7 @@ const _tomada = {
   'moneda': 'USD',
   'observaciones': 'Caja',
   'estado': 'tomada',
+  'remitenteNombre': 'Lucía Gómez',
 };
 
 http.Response _resultados() => http.Response(
@@ -47,8 +49,11 @@ void main() {
         final controlador = await _cargarController();
         final original = controlador.resultados.single;
         expect(original.estado, EstadoEncomienda.tomada);
+        expect(original.remitenteNombre, 'Lucía Gómez');
+        expect(original.toJson().containsKey('remitenteNombre'), isFalse);
         expect(await controlador.confirmarEntrega(original), isTrue);
         expect(controlador.resultados.single.estado, EstadoEncomienda.recibida);
+        expect(controlador.resultados.single.remitenteNombre, 'Lucía Gómez');
         expect(controlador.confirmandoEntrega, isFalse);
         expect(cambios, 1);
         expect(
@@ -192,12 +197,13 @@ void main() {
     );
   });
 
-  testWidgets('HU-14 pide confirmación y cancelar no llama al backend', (
+  testWidgets('Contactar al remitente precede a la confirmación de HU-14', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     var entregas = 0;
+    final entregaPendiente = Completer<http.Response>();
     await http.runWithClient(
       () async {
         await tester.pumpWidget(
@@ -221,15 +227,49 @@ void main() {
         await tester.tap(buscar);
         await tester.pumpAndSettle();
 
+        expect(find.text('Confirmar entrega'), findsNothing);
+        final contacto = find.text('Contactar al remitente');
+        await tester.ensureVisible(contacto);
+        await tester.tap(contacto);
+        await tester.pumpAndSettle();
+        expect(entregas, 0);
+        expect(find.text('Lucía Gómez'), findsOneWidget);
+        expect(find.text('Bogota → Miami'), findsOneWidget);
+        expect(find.text('Tomada'), findsOneWidget);
+        expect(find.text('Teléfono'), findsOneWidget);
+        final telefono = find.textContaining(RegExp(r'^320 \d{3} \d{4}$'));
+        expect(telefono, findsOneWidget);
+        final numero = tester.widget<Text>(telefono).data!;
+        await tester.tap(telefono);
+        await tester.pumpAndSettle();
+        expect(entregas, 0);
+        expect(find.byType(FilledButton), findsOneWidget);
+        expect(find.byType(OutlinedButton), findsNothing);
+        expect(find.byType(TextButton), findsNothing);
+
         final boton = find.text('Confirmar entrega');
         await tester.ensureVisible(boton);
         await tester.tap(boton);
         await tester.pumpAndSettle();
-        expect(find.text('Sí, confirmar entrega'), findsOneWidget);
-        await tester.tap(find.text('Cancelar'));
+        expect(
+          find.text(
+            '¿Confirmas que entregaste la encomienda? '
+            'Su estado se actualizará a recibida.',
+          ),
+          findsOneWidget,
+        );
+        final cancelar = find.widgetWithText(OutlinedButton, 'Cancelar');
+        final confirmar = find.widgetWithText(
+          FilledButton,
+          'Sí, confirmar entrega',
+        );
+        expect(tester.getSize(cancelar), tester.getSize(confirmar));
+        expect(tester.getCenter(cancelar).dy, tester.getCenter(confirmar).dy);
+        await tester.tap(cancelar);
         await tester.pumpAndSettle();
         expect(entregas, 0);
         expect(find.text('Tomada'), findsOneWidget);
+        expect(find.text(numero), findsOneWidget);
 
         await tester.ensureVisible(boton);
         await tester.tap(boton);
@@ -237,7 +277,26 @@ void main() {
         await tester.tap(find.text('Sí, confirmar entrega'));
         await tester.pumpAndSettle();
         expect(entregas, 1);
+        expect(find.text('El servidor presentó un problema.'), findsOneWidget);
+        expect(find.text('Tomada'), findsOneWidget);
+        expect(find.text('Recibida'), findsNothing);
+        expect(find.text(numero), findsOneWidget);
+
+        await tester.tap(boton);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Sí, confirmar entrega'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 350));
+        expect(entregas, 2);
+        expect(find.text('Tomada'), findsOneWidget);
+        expect(find.text('Recibida'), findsNothing);
+        final procesando = find.widgetWithText(FilledButton, 'Confirmando...');
+        expect(tester.widget<FilledButton>(procesando).onPressed, isNull);
+
+        entregaPendiente.complete(http.Response('{"estado":"recibida"}', 200));
+        await tester.pumpAndSettle();
         expect(find.text('Recibida'), findsOneWidget);
+        expect(find.text('Contactar al remitente'), findsNothing);
         expect(find.text('Confirmar entrega'), findsNothing);
       },
       () => MockClient((solicitud) async {
@@ -248,11 +307,35 @@ void main() {
           return _resultados();
         }
         if (solicitud.url.path == '/api/encomiendas/enc-14/estado') {
-          entregas++;
-          return http.Response('{"estado":"recibida"}', 200);
+          expect(solicitud.method, 'PUT');
+          expect(jsonDecode(solicitud.body), {'estado': 'recibida'});
+          return ++entregas == 1
+              ? http.Response('{}', 500)
+              : entregaPendiente.future;
         }
         throw StateError('Solicitud inesperada: ${solicitud.url.path}');
       }),
     );
+  });
+
+  testWidgets('Muestra el nombre como no disponible y no permite reconfirmar', (
+    tester,
+  ) async {
+    final datos = Map<String, dynamic>.of(_tomada)
+      ..remove('remitenteNombre')
+      ..['estado'] = 'recibida';
+    final controlador = EncomiendasTomadasController(idToken: 'prueba');
+    addTearDown(controlador.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ContactoRemitenteView(
+          encomienda: Encomienda.desdeJson(datos),
+          controlador: controlador,
+        ),
+      ),
+    );
+    expect(find.text('Nombre del remitente no disponible'), findsOneWidget);
+    expect(find.text('Recibida'), findsOneWidget);
+    expect(find.text('Confirmar entrega'), findsNothing);
   });
 }

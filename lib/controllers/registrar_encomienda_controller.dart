@@ -1,25 +1,22 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/encomienda.dart';
+import '../services/ciudades_service.dart';
 import '../services/encomiendas_service.dart';
 import '../utils/validadores.dart';
 
-class RegistrarEncomiendaController extends ChangeNotifier {
+import 'catalogo_ciudades.dart';
+
+class RegistrarEncomiendaController extends ChangeNotifier with CatalogoCiudades {
   RegistrarEncomiendaController({
     EncomiendasService? encomiendasService,
+    CiudadesService? ciudadesService,
   }) : _encomiendasService =
-           encomiendasService ?? EncomiendasService();
+           encomiendasService ?? EncomiendasService() {
+    servicioCiudades = ciudadesService ?? CiudadesService();
+  }
 
   final EncomiendasService _encomiendasService;
-
-  static const List<String> ciudadesDisponibles = [
-    'Bogota',
-    'Medellin',
-    'Cali',
-    'Madrid',
-    'Paris',
-    'Miami',
-  ];
 
   static const List<String> monedasDisponibles = [
     'USD',
@@ -63,13 +60,12 @@ class RegistrarEncomiendaController extends ChangeNotifier {
     notifyListeners();
   }
 
-  String? validarCiudad(String? valor) {
-    if (valor == null) {
-      return 'Selecciona una ciudad';
-    }
+  String? validarOrigen() => _validarCiudad(_origen);
 
-    return null;
-  }
+  String? validarDestino() => _validarCiudad(_destino);
+
+  String? _validarCiudad(String? valor) =>
+      valor == null ? 'Selecciona una ciudad del catálogo.' : null;
 
   String? validarMoneda(String? valor) {
     if (valor == null) {
@@ -120,6 +116,10 @@ class RegistrarEncomiendaController extends ChangeNotifier {
   }
 
   String? validarSeleccion() {
+    if (_origen == null || _destino == null) {
+      return 'Selecciona las ciudades de origen y destino';
+    }
+
     if (_origen == _destino) {
       return 'Origen y destino deben ser diferentes';
     }

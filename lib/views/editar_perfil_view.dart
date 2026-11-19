@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../utils/validadores.dart';
 import 'widgets/campos_formulario.dart';
 import 'widgets/formateadores_entrada.dart';
+import 'widgets/selector_pais.dart';
 
 /// Formulario de actualización de los datos personales.
 ///
@@ -41,7 +42,7 @@ class _EditarPerfilViewState extends State<EditarPerfilView> {
   late final TextEditingController _nombreController;
   late final TextEditingController _apellidoController;
   late final TextEditingController _telefonoController;
-  late final TextEditingController _nacionalidadController;
+  String? _paisElegido;
 
   /// Fecha de nacimiento elegida, inicializada con la que ya está guardada.
   DateTime? _fechaNacimiento;
@@ -55,10 +56,12 @@ class _EditarPerfilViewState extends State<EditarPerfilView> {
     _nombreController = TextEditingController(text: perfil.nombre);
     _apellidoController = TextEditingController(text: perfil.apellido);
     _telefonoController = TextEditingController(text: perfil.telefono);
-    _nacionalidadController = TextEditingController(
-      text: perfil.nacionalidad,
-    );
     _fechaNacimiento = perfil.fechaNacimiento;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        widget.perfilController.catalogoPaises.cargar(actualizar: true);
+      }
+    });
   }
 
   @override
@@ -66,7 +69,6 @@ class _EditarPerfilViewState extends State<EditarPerfilView> {
     _nombreController.dispose();
     _apellidoController.dispose();
     _telefonoController.dispose();
-    _nacionalidadController.dispose();
     super.dispose();
   }
 
@@ -110,7 +112,7 @@ class _EditarPerfilViewState extends State<EditarPerfilView> {
       nombre: _nombreController.text.trim(),
       apellido: _apellidoController.text.trim(),
       telefono: _telefonoController.text.trim(),
-      nacionalidad: _nacionalidadController.text.trim(),
+      nacionalidad: _paisElegido ?? widget.perfil.nacionalidad,
       fechaNacimiento: _fechaNacimiento,
     );
 
@@ -174,7 +176,6 @@ class _EditarPerfilViewState extends State<EditarPerfilView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Recordatorio de los datos que no se pueden cambiar.
                   Container(
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
@@ -191,7 +192,7 @@ class _EditarPerfilViewState extends State<EditarPerfilView> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'El ID de la cuenta y el correo (${widget.perfil.correo}) no se pueden modificar.',
+                            'El correo (${widget.perfil.correo}) no se puede modificar.',
                             style: const TextStyle(
                               color: AppTheme.textPrimary,
                               height: 1.4,
@@ -250,15 +251,11 @@ class _EditarPerfilViewState extends State<EditarPerfilView> {
 
                   const SizedBox(height: 20),
 
-                  CampoTexto(
-                    etiqueta: 'Nacionalidad',
-                    controller: _nacionalidadController,
-                    hintText: 'Ejemplo: Colombia',
-                    icono: Icons.public_outlined,
-                    textCapitalization: TextCapitalization.words,
-                    textInputAction: TextInputAction.done,
-                    validator: (valor) =>
-                        validarTextoObligatorio(valor, 'nacionalidad'),
+                  SelectorPais(
+                    catalogo: widget.perfilController.catalogoPaises,
+                    seleccion: _paisElegido,
+                    valorGuardado: widget.perfil.nacionalidad,
+                    onSeleccionar: (pais) => setState(() => _paisElegido = pais),
                   ),
 
                   const SizedBox(height: 32),

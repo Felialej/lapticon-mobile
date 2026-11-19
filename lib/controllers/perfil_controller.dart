@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../models/perfil_usuario.dart';
 import '../services/usuarios_service.dart';
+import 'catalogo_paises_controller.dart';
 
 /// Controlador del perfil del usuario.
 ///
@@ -14,10 +17,12 @@ class PerfilController extends ChangeNotifier {
     : _usuariosService = usuariosService ?? UsuariosService();
 
   final UsuariosService _usuariosService;
+  final catalogoPaises = CatalogoPaisesController();
 
   PerfilUsuario? _perfil;
   bool _cargando = false;
   bool _guardando = false;
+  bool _descartado = false;
   String? _error;
 
   /// Perfil consultado, o nulo mientras no se ha cargado.
@@ -40,6 +45,7 @@ class PerfilController extends ChangeNotifier {
     required String uid,
     required String idToken,
   }) async {
+    unawaited(catalogoPaises.cargar());
     _cargando = true;
     _error = null;
     notifyListeners();
@@ -53,8 +59,15 @@ class PerfilController extends ChangeNotifier {
       _error = mensajeDeError(excepcion);
     } finally {
       _cargando = false;
-      notifyListeners();
+      if (!_descartado) notifyListeners();
     }
+  }
+
+  @override
+  void dispose() {
+    _descartado = true;
+    catalogoPaises.dispose();
+    super.dispose();
   }
 
   /// Envía los datos modificados y deja el perfil devuelto por el backend.

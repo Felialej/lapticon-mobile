@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 
+import '../../utils/formato_monetario.dart';
 import '../../utils/validadores.dart';
 
 class FormateadorTelefono extends TextInputFormatter {
@@ -75,12 +76,7 @@ class FormateadorValorColombiano extends TextInputFormatter {
       }
     }
 
-    final agrupado = StringBuffer();
-    if (agregaCero) agrupado.write('0');
-    for (var i = 0; i < entero.length; i++) {
-      if (i > 0 && (entero.length - i) % 3 == 0) agrupado.write('.');
-      agrupado.write(entero[i]);
-    }
+    final agrupado = StringBuffer(agregaCero ? '0' : agruparMiles(entero));
     if (partes.length == 2) agrupado.write(',${partes.last}');
 
     final formateado = agrupado.toString();

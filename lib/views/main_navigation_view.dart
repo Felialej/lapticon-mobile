@@ -20,6 +20,8 @@ import 'registrar_encomienda_view.dart';
 import 'registrar_viaje_view.dart';
 import 'seguimiento_encomienda_view.dart';
 import 'seleccion_modo_view.dart';
+import 'widgets/dialogo_confirmacion.dart';
+import 'widgets/estilo_modo.dart';
 
 /// Contenedor de la aplicación una vez iniciada la sesión.
 ///
@@ -37,7 +39,7 @@ class MainNavigationView extends StatefulWidget {
 
 class _MainNavigationViewState extends State<MainNavigationView> {
   ModoUsuario? _modoSeleccionado;
-  bool _eligiendoFuncion = true;
+  ModoUsuario? _modoActivo;
   bool _viajesSolicitados = false;
   bool _encomiendasSolicitadas = false;
 
@@ -157,24 +159,11 @@ class _MainNavigationViewState extends State<MainNavigationView> {
   }
 
   Future<bool?> _confirmarCompletarViaje(Viaje viaje) {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Completar viaje'),
-        content: Text(
-          '¿Deseas marcar el viaje ${viaje.numeroVuelo} como completado?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Completar'),
-          ),
-        ],
-      ),
+    return mostrarDialogoConfirmacion(
+      context,
+      titulo: 'Completar viaje',
+      mensaje: '¿Deseas marcar el viaje ${viaje.numeroVuelo} como completado?',
+      accion: 'Completar',
     );
   }
 
@@ -231,9 +220,7 @@ class _MainNavigationViewState extends State<MainNavigationView> {
     Navigator.push<void>(
       context,
       MaterialPageRoute(
-        builder: (context) => BuscarEncomiendasView(
-          idToken: usuario.idToken,
-        ),
+        builder: (context) => BuscarEncomiendasView(idToken: usuario.idToken),
       ),
     );
   }
@@ -271,19 +258,21 @@ class _MainNavigationViewState extends State<MainNavigationView> {
     );
   }
 
-  void _continuarConFuncion() {
+  void _activarModo(ModoUsuario modo) {
+    if (_modoActivo == modo) return;
+
     setState(() {
-      _eligiendoFuncion = false;
+      _modoActivo = modo;
+      _modoSeleccionado = null;
       _indiceSeleccionado = 0;
     });
 
-    if (_modoSeleccionado == ModoUsuario.viajero && !_viajesSolicitados) {
+    if (modo == ModoUsuario.viajero && !_viajesSolicitados) {
       _viajesSolicitados = true;
       _cargarViajes();
     }
 
-    if (_modoSeleccionado == ModoUsuario.remitente &&
-        !_encomiendasSolicitadas) {
+    if (modo == ModoUsuario.remitente && !_encomiendasSolicitadas) {
       _encomiendasSolicitadas = true;
       _cargarEncomiendas();
     }
@@ -291,19 +280,35 @@ class _MainNavigationViewState extends State<MainNavigationView> {
 
   @override
   Widget build(BuildContext context) {
-    if (_eligiendoFuncion) {
+    final modo = _modoActivo;
+    if (modo == null) {
       return SeleccionModoView(
         modoSeleccionado: _modoSeleccionado,
         onSeleccionar: (modo) => setState(() => _modoSeleccionado = modo),
-        onContinuar: _continuarConFuncion,
+        onContinuar: () {
+          if (_modoSeleccionado case final elegido?) _activarModo(elegido);
+        },
+        onCerrarSesion: widget.authController.cerrarSesion,
       );
     }
 
-    final esViajero = _modoSeleccionado == ModoUsuario.viajero;
+    return LayoutBuilder(
+      builder: (context, restricciones) => _pantallaPrincipal(
+        modo,
+        _CabeceraPrincipal.necesitaSegundaFila(context, restricciones.maxWidth),
+      ),
+    );
+  }
+
+  Widget _pantallaPrincipal(ModoUsuario modo, bool cabeceraCompacta) {
+    final esViajero = modo == ModoUsuario.viajero;
 
     return Scaffold(
-      // El ListenableBuilder redibuja las pestañas cuando la lista de viajes
-      // cambia, de modo que el contador de inicio y el listado quedan al día.
+      appBar: _CabeceraPrincipal(
+        modo: modo,
+        onCambiarModo: _activarModo,
+        compacta: cabeceraCompacta,
+      ),
       body: ListenableBuilder(
         listenable: Listenable.merge([
           _viajesController,
@@ -317,9 +322,7 @@ class _MainNavigationViewState extends State<MainNavigationView> {
             children: [
               if (esViajero) ...[
                 HomeView(
-                  cantidadViajes: _viajesController.cantidad,
                   onRegistrarViaje: _registrarViaje,
-                  onVerViajes: () => _seleccionarPestana(1),
                   onVerEncomiendasTomadas: _verEncomiendasTomadas,
                   onBuscarEncomiendas: _buscarEncomiendasDisponibles,
                 ),
@@ -331,7 +334,6 @@ class _MainNavigationViewState extends State<MainNavigationView> {
               ] else ...[
                 InicioRemitenteView(
                   onPublicarEncomienda: _publicarEncomienda,
-                  onVerEncomiendas: () => _seleccionarPestana(1),
                   onBuscarViajeros: _buscarViajeros,
                 ),
                 MisEncomiendasView(
@@ -346,10 +348,6 @@ class _MainNavigationViewState extends State<MainNavigationView> {
               PerfilView(
                 authController: widget.authController,
                 perfilController: _perfilController,
-                onCambiarFuncion: () => setState(() {
-                  _modoSeleccionado = null;
-                  _eligiendoFuncion = true;
-                }),
               ),
             ],
           );
@@ -358,38 +356,166 @@ class _MainNavigationViewState extends State<MainNavigationView> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _indiceSeleccionado,
         backgroundColor: Colors.white,
-        indicatorColor: const Color(0xFFE6EFFF),
-        elevation: 4,
-        height: 72,
+        indicatorColor: modo.fondo,
+        elevation: 1,
+        height: 68,
         onDestinationSelected: _seleccionarPestana,
         destinations: [
-          const NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded, color: AppTheme.primary),
+          NavigationDestination(
+            icon: const Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home_rounded, color: modo.acento),
             label: 'Inicio',
           ),
-          if (esViajero)
-            const NavigationDestination(
-              icon: Icon(Icons.flight_outlined),
-              selectedIcon: Icon(Icons.flight_rounded, color: AppTheme.primary),
-              label: 'Viajes',
-            )
-          else
-            const NavigationDestination(
-              icon: Icon(Icons.inventory_2_outlined),
-              selectedIcon: Icon(
-                Icons.inventory_2_rounded,
-                color: AppTheme.primary,
-              ),
-              label: 'Envíos',
-            ),
-          const NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person_rounded, color: AppTheme.primary),
+          NavigationDestination(
+            icon: Icon(modo.icono),
+            selectedIcon: Icon(modo.icono, color: modo.acento),
+            label: esViajero ? 'Mis viajes' : 'Mis encomiendas',
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person_rounded, color: modo.acento),
             label: 'Perfil',
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CabeceraPrincipal extends StatelessWidget
+    implements PreferredSizeWidget {
+  const _CabeceraPrincipal({
+    required this.modo,
+    required this.onCambiarModo,
+    required this.compacta,
+  });
+
+  static const double _altoBarra = 60;
+  static const double _altoSelector = 52;
+  static const double _margen = 16;
+  static const double _anchoLogo = 34;
+  static const double _separacionMarca = 8;
+  static const double _rellenoOpcion = 9;
+  static const double _tamIconoRol = 16;
+  static const double _separacionRol = 6;
+  static const _estiloMarca = TextStyle(
+    color: AppTheme.primary,
+    fontSize: 18,
+    fontWeight: FontWeight.bold,
+  );
+  static const _estiloRol = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 0,
+  );
+
+  final ModoUsuario modo;
+  final ValueChanged<ModoUsuario> onCambiarModo;
+  final bool compacta;
+
+  static bool necesitaSegundaFila(BuildContext context, double ancho) {
+    double medir(String texto, TextStyle estilo) => TextPainter.computeWidth(
+      text: TextSpan(text: texto, style: estilo),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    );
+
+    final anchoMarca =
+        _anchoLogo + _separacionMarca + medir('Lapticon', _estiloMarca);
+    final anchoEtiqueta = ModoUsuario.values
+        .map((rol) => medir(rol.titulo, _estiloRol))
+        .reduce((a, b) => a > b ? a : b);
+    final anchoOpcion =
+        anchoEtiqueta + _tamIconoRol + _separacionRol + 2 * _rellenoOpcion;
+    return ancho <
+        anchoMarca + anchoOpcion * ModoUsuario.values.length + 3 * _margen;
+  }
+
+  @override
+  Size get preferredSize =>
+      Size.fromHeight(_altoBarra + (compacta ? _altoSelector : 0));
+
+  @override
+  Widget build(BuildContext context) {
+    final selector = SegmentedButton<ModoUsuario>(
+      segments: [
+        for (final opcion in ModoUsuario.values)
+          ButtonSegment(
+            value: opcion,
+            label: Row(
+              mainAxisSize: MainAxisSize.min,
+              spacing: _separacionRol,
+              children: [
+                Icon(opcion.icono, size: _tamIconoRol),
+                Flexible(child: Text(opcion.titulo)),
+              ],
+            ),
+          ),
+      ],
+      selected: {modo},
+      onSelectionChanged: (seleccion) => onCambiarModo(seleccion.single),
+      showSelectedIcon: false,
+      style: SegmentedButton.styleFrom(
+        foregroundColor: AppTheme.primary,
+        backgroundColor: const Color(0xFFF0F4F9),
+        selectedForegroundColor: Colors.white,
+        selectedBackgroundColor: modo.acento,
+        side: BorderSide.none,
+        minimumSize: const Size(0, 36),
+        padding: const EdgeInsets.symmetric(horizontal: _rellenoOpcion),
+        textStyle: _estiloRol,
+      ),
+    );
+
+    return AppBar(
+      automaticallyImplyLeading: false,
+      backgroundColor: Colors.white,
+      shape: const Border(bottom: BorderSide(color: Color(0xFFE4E7EC))),
+      toolbarHeight: _altoBarra,
+      titleSpacing: _margen,
+      title: Row(
+        children: [
+          Container(
+            width: _anchoLogo,
+            height: _anchoLogo,
+            decoration: BoxDecoration(
+              color: AppTheme.primary,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.flight_rounded,
+              size: 21,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(width: _separacionMarca),
+          const Flexible(
+            child: Text(
+              'Lapticon',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: _estiloMarca,
+            ),
+          ),
+        ],
+      ),
+      actions: compacta
+          ? null
+          : [
+              Padding(
+                padding: const EdgeInsetsDirectional.only(end: _margen),
+                child: Center(widthFactor: 1, child: selector),
+              ),
+            ],
+      bottom: compacta
+          ? PreferredSize(
+              preferredSize: const Size.fromHeight(_altoSelector),
+              child: SizedBox(
+                height: _altoSelector,
+                child: Center(child: selector),
+              ),
+            )
+          : null,
     );
   }
 }

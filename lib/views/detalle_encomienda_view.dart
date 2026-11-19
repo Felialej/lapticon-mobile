@@ -4,6 +4,7 @@ import '../controllers/tomar_encomienda_controller.dart';
 import '../models/encomienda.dart';
 import '../theme/app_theme.dart';
 import 'encomiendas_tomadas_view.dart';
+import 'widgets/dialogo_confirmacion.dart';
 import 'widgets/etiqueta_estado.dart';
 
 /// HU-13: detalle y aceptación de una encomienda disponible.
@@ -37,24 +38,11 @@ class _DetalleEncomiendaViewState extends State<DetalleEncomiendaView> {
   }
 
   Future<void> _tomar() async {
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Tomar encomienda'),
-        content: Text(
-          '¿Deseas aceptar la encomienda de ${widget.encomienda.ruta}?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Aceptar'),
-          ),
-        ],
-      ),
+    final confirmar = await mostrarDialogoConfirmacion(
+      context,
+      titulo: 'Tomar encomienda',
+      mensaje: '¿Deseas aceptar la encomienda de ${widget.encomienda.ruta}?',
+      accion: 'Aceptar',
     );
     if (confirmar != true || !mounted) return;
     final exito = await _controller.aceptar(widget.encomienda);
@@ -115,9 +103,7 @@ class _DetalleEncomiendaViewState extends State<DetalleEncomiendaView> {
               const SizedBox(height: 24),
               if (_controller.procesando)
                 const Center(child: CircularProgressIndicator())
-              else if (_controller.tomada) ...[
-                const Text('La asignación fue confirmada por el servidor.'),
-                const SizedBox(height: 12),
+              else if (_controller.tomada)
                 FilledButton.icon(
                   onPressed: () => Navigator.push(
                     context,
@@ -128,8 +114,8 @@ class _DetalleEncomiendaViewState extends State<DetalleEncomiendaView> {
                   ),
                   icon: const Icon(Icons.inventory_2_outlined),
                   label: const Text('Ver encomiendas tomadas'),
-                ),
-              ] else if (enc.estado == EstadoEncomienda.disponible)
+                )
+              else if (enc.estado == EstadoEncomienda.disponible)
                 FilledButton.icon(
                   onPressed: _tomar,
                   icon: const Icon(Icons.check_circle_outline),

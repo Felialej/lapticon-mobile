@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../controllers/registrar_viaje_controller.dart';
 import '../theme/app_theme.dart';
 import '../utils/formato_fecha.dart';
+import 'widgets/busqueda_por_ruta.dart';
 import 'widgets/campos_formulario.dart';
 
 /// Formulario de registro de un viaje.
@@ -28,6 +29,12 @@ class _RegistrarViajeViewState extends State<RegistrarViajeView> {
 
   /// Controlador MVC del registro de viajes.
   final RegistrarViajeController _controller = RegistrarViajeController();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.cargarCiudades();
+  }
 
   @override
   void dispose() {
@@ -179,43 +186,30 @@ class _RegistrarViajeViewState extends State<RegistrarViajeView> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Ciudad de origen',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      DropdownButtonFormField<String>(
-                        initialValue: _controller.origen,
-                        decoration: const InputDecoration(
-                          hintText: 'Selecciona el origen',
-                          prefixIcon: Icon(Icons.flight_takeoff),
+                      if (_controller.cargandoCiudades)
+                        const Center(child: CircularProgressIndicator())
+                      else if (_controller.errorCiudades case final mensaje?)
+                        ErrorCatalogoCiudades(
+                          mensaje: mensaje,
+                          onReintentar: _controller.cargarCiudades,
+                        )
+                      else ...[
+                        SelectorCiudad(
+                          etiqueta: 'Ciudad de origen',
+                          icono: Icons.flight_takeoff,
+                          ciudades: _controller.ciudades,
+                          seleccionar: _controller.seleccionarOrigen,
+                          validar: _controller.validarOrigen,
                         ),
-                        items: _opcionesDeCiudad(),
-                        onChanged: _controller.seleccionarOrigen,
-                        validator: _controller.validarCiudad,
-                      ),
-
-                      const SizedBox(height: 22),
-
-                      const Text(
-                        'Ciudad de destino',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      DropdownButtonFormField<String>(
-                        initialValue: _controller.destino,
-                        decoration: const InputDecoration(
-                          hintText: 'Selecciona el destino',
-                          prefixIcon: Icon(Icons.flight_land),
+                        const SizedBox(height: 22),
+                        SelectorCiudad(
+                          etiqueta: 'Ciudad de destino',
+                          icono: Icons.flight_land,
+                          ciudades: _controller.ciudades,
+                          seleccionar: _controller.seleccionarDestino,
+                          validar: _controller.validarDestino,
                         ),
-                        items: _opcionesDeCiudad(),
-                        onChanged: _controller.seleccionarDestino,
-                        validator: _controller.validarCiudad,
-                      ),
+                      ],
 
                       const SizedBox(height: 22),
 
@@ -265,15 +259,5 @@ class _RegistrarViajeViewState extends State<RegistrarViajeView> {
         ),
       ),
     );
-  }
-
-  /// Crea las opciones utilizadas por origen y destino.
-  List<DropdownMenuItem<String>> _opcionesDeCiudad() {
-    return RegistrarViajeController.ciudadesDisponibles
-        .map(
-          (ciudad) =>
-              DropdownMenuItem<String>(value: ciudad, child: Text(ciudad)),
-        )
-        .toList();
   }
 }

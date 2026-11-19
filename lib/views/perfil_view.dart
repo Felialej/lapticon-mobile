@@ -16,7 +16,6 @@ class PerfilView extends StatelessWidget {
     super.key,
     required this.authController,
     required this.perfilController,
-    required this.onCambiarFuncion,
   });
 
   /// Controlador compartido que gestiona la sesión.
@@ -24,7 +23,6 @@ class PerfilView extends StatelessWidget {
 
   /// Controlador que consulta y actualiza los datos personales.
   final PerfilController perfilController;
-  final VoidCallback onCambiarFuncion;
 
   /// Abre la pantalla de edición y avisa del resultado al volver.
   Future<void> _editarPerfil(BuildContext context, PerfilUsuario perfil) async {
@@ -86,7 +84,10 @@ class PerfilView extends StatelessWidget {
     // El ListenableBuilder redibuja la pestaña cuando el perfil se carga o se
     // actualiza.
     return ListenableBuilder(
-      listenable: perfilController,
+      listenable: Listenable.merge([
+        perfilController,
+        perfilController.catalogoPaises,
+      ]),
       builder: (context, _) {
         return SafeArea(
           child: SingleChildScrollView(
@@ -117,16 +118,6 @@ class PerfilView extends StatelessWidget {
                 _contenido(context),
 
                 const SizedBox(height: 26),
-
-                OutlinedButton.icon(
-                  onPressed: onCambiarFuncion,
-                  icon: const Icon(Icons.swap_horiz),
-                  label: const Text('Cambiar función'),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(52),
-                  ),
-                ),
-                const SizedBox(height: 12),
 
                 // Al cerrar sesión el controlador descarta el usuario y la
                 // raíz de la aplicación vuelve al inicio de sesión.
@@ -187,12 +178,6 @@ class PerfilView extends StatelessWidget {
 
         const SizedBox(height: 12),
 
-        // Cada dato guardado en el backend, en el orden del formulario.
-        _FilaDato(
-          icono: Icons.key_outlined,
-          etiqueta: 'ID de la cuenta',
-          valor: perfil.uid,
-        ),
         _FilaDato(
           icono: Icons.person_outline,
           etiqueta: 'Nombre',
@@ -217,8 +202,8 @@ class PerfilView extends StatelessWidget {
         ),
         _FilaDato(
           icono: Icons.public_outlined,
-          etiqueta: 'Nacionalidad',
-          valor: perfil.nacionalidad,
+          etiqueta: 'País de nacimiento',
+          valor: _mostrarPais(perfil.nacionalidad),
         ),
         _FilaDato(
           icono: Icons.email_outlined,
@@ -235,6 +220,15 @@ class PerfilView extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  String _mostrarPais(String valor) {
+    if (valor.isEmpty) return '';
+    final catalogo = perfilController.catalogoPaises;
+    if (catalogo.paises.isNotEmpty && !catalogo.contiene(valor)) {
+      return 'Dato anterior: $valor';
+    }
+    return valor;
   }
 
   Widget _identificacionCuenta(PerfilUsuario perfil) {
